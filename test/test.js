@@ -4,6 +4,9 @@
 
 //引入授权式连接器
 const remote = require('../src/authConn')
+//设置node环境下兼容的fetch函数
+const fetch = require('node-fetch');
+remote.setFetch(fetch);
 
 //设置授权式连接器的网络类型和对应参数，网络类型分为 testnet 和 main
 remote.setup({
@@ -15,8 +18,9 @@ remote.setup({
     token:  '03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08', //授权节点令牌固定量，用于访问远程钱包时的认证
 });
 
-describe.only('道具管理流程', () => {
-    it('设定厂商和转移地址信息', async () => {
+
+describe.only('模拟测试', () => {
+    it('查询余额', async () => {
         let ret = await remote.execute('balance.all', []);
         console.log(ret);
     });

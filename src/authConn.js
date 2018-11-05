@@ -42,8 +42,14 @@ async function $req(options) {
   }
 
   try {
-    let ret = await fetch(newOptions.uri, newOptions);
-    return await ret.json();
+    if(AuthConn.fetch) {
+      let ret = await AuthConn.fetch(newOptions.uri, newOptions);
+      return await ret.json();
+    }
+    else {
+      let ret = await fetch(newOptions.uri, newOptions);
+      return await ret.json();
+    }
   }
   catch(e) {
     console.error(e);
@@ -324,6 +330,14 @@ class AuthConn
 
     //设置默认网络类型的参数
     AuthConnConfig[info.type] = info;
+  }
+
+  /**
+   * 为了提供node下的兼容性而添加的属性设定函数
+   * @param {*} fn 
+   */
+  static setFetch(fn) {
+    AuthConn.fetch = fn;
   }
 }
 
