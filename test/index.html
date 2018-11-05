@@ -7,7 +7,7 @@
 	<div id='content'></div>
 	<script>
 		//设置授权式连接器的网络类型和对应参数，网络类型分为 testnet 和 main
-		remote.conn.setup({
+		toolkit.conn.setup({
 			type:   'testnet',            //远程全节点类型
 			ip:     '127.0.0.1',          //远程全节点地址
 			apiKey: 'bookmansoft',        //远程全节点基本校验密码
@@ -17,7 +17,7 @@
 		});
 
 		(async () => {
-			let ret = await remote.conn.execute('balance.all', []);
+			let ret = await toolkit.conn.execute('balance.all', []);
 			document.getElementById('content').innerHTML = JSON.stringify(ret);
 		})();
 	</script>

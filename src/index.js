@@ -1,6 +1,6 @@
-const remote = exports;
-remote.conn = require('./authConn')
+const toolkit = exports;
+toolkit.conn = require('./authConn')
 if(!global) {
     global = {};
 }
-global.remote = remote;
+global.toolkit = toolkit;
