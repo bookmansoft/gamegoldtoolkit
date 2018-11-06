@@ -2,12 +2,11 @@
 <html>
 <head>
 	<script src="../lib/bundle.js"></script>
-	<script src="../lib/socket.io.js"></script>
 </head>
 <body>
 	<div id='content'></div>
 	<script>
-		let remote = new (toolkit.conn)(io);
+		let remote = new toolkit.conn();
 		//设置授权式连接器的网络类型和对应参数，网络类型分为 testnet 和 main
 		remote.setup({
 			type:   'testnet',            //远程全节点类型

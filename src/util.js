@@ -1,4 +1,5 @@
 const createHmac = require('create-hmac/browser');
+const io = require('socket.io-client');
 
 /**
  * 客户端请求返回值，统一定义所有的错误码，每100个为一个大类
@@ -142,6 +143,7 @@ function ms() {
 
 exports.now = now;
 exports.ms = ms;
+exports.io = io;
 exports.Base64 = Base64;
 exports.signHMAC = signHMAC;
 exports.ReturnCode = ReturnCode;
