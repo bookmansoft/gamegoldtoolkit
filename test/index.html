@@ -6,10 +6,14 @@
 <body>
 	<div id='content'></div>
 	<script>
+		//签名验证函数
+		//toolkit.verifyData({});
+
+		//授权式连接器
 		let remote = new toolkit.conn();
-		//设置授权式连接器的网络类型和对应参数，网络类型分为 testnet 和 main
+		//设置连接参数
 		remote.setup({
-			type:   'testnet',            //远程全节点类型
+			type:   'testnet',            //对等网络类型，分为 testnet 和 main
 			ip:     '127.0.0.1',          //远程全节点地址
 			apiKey: 'bookmansoft',        //远程全节点基本校验密码
 			id:     'primary',            //默认访问的钱包编号
@@ -18,6 +22,7 @@
 		});
 
 		(async () => {
+			//查询账户余额
 			let ret = await remote.execute('balance.all', []);
 			document.getElementById('content').innerHTML = JSON.stringify(ret);
 		})();

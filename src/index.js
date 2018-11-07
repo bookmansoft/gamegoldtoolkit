@@ -1,3 +1,6 @@
 const toolkit = exports;
-toolkit.conn = require('./authConn')
+
+toolkit.conn = require('./authConn');
+toolkit.verifyData = require('./verifyData');
+
 global.toolkit = toolkit;
