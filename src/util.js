@@ -5,7 +5,7 @@ const io = require('socket.io-client');
  * 客户端请求返回值，统一定义所有的错误码，每100个为一个大类
  */
 const ReturnCode = {
-    Success: 0,             //操作成功
+    Success: 0,         //操作成功
 };
 
 const CommMode = {

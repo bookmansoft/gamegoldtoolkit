@@ -79,6 +79,74 @@ class AuthConn
   }
 
   /**
+   * 以 GET 方式，访问开放式API
+   * @param {*} url 
+   */
+  async get(url) {
+    const newOptions = { json: true };
+      
+    let conf = this.getTerminalConfig();
+    let _head = !!conf.head ? conf.head : 'http';
+    if(conf.type == 'main') {
+      url = `${_head}://${conf.ip}:7332/public/${url}`;
+    }
+    else {
+      url = `${_head}://${conf.ip}:17332/public/${url}`;
+    }
+
+    newOptions.headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
+    };
+
+    try {
+      if(this.fetch) {
+        let ret = await this.fetch(url, newOptions);
+        return await ret.json();
+      }
+      else {
+        let ret = await fetch(url, newOptions);
+        return await ret.json();
+      }
+    }
+    catch(e) {
+      console.error(e);
+    }
+  }
+
+  async post(url, options) {
+    const newOptions = { json: true, method: 'POST', body: JSON.stringify(options) };
+      
+    let conf = this.getTerminalConfig();
+    let _head = !!conf.head ? conf.head : 'http';
+    if(conf.type == 'main') {
+      url = `${_head}://${conf.ip}:7332/public/${url}`;
+    }
+    else {
+      url = `${_head}://${conf.ip}:17332/public/${url}`;
+    }
+
+    newOptions.headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
+    };
+
+    try {
+      if(this.fetch) {
+        let ret = await this.fetch(url, newOptions);
+        return await ret.json();
+      }
+      else {
+        let ret = await fetch(url, newOptions);
+        return await ret.json();
+      }
+    }
+    catch(e) {
+      console.error(e);
+    }
+  }
+
+  /**
    * 执行RPC调用
    * @param {*} method 
    * @param {*} params 
@@ -237,6 +305,7 @@ class AuthConn
     newOptions.json = true;
 
     let _head = !!conf.head ? conf.head : 'http';
+
     if(conf.type == 'main') {
       newOptions.uri = `${_head}://${conf.ip}:7332/`;
     }
