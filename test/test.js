@@ -5,7 +5,6 @@
 //引入授权式连接器
 const sclient = require('socket.io-client')
 const conn = require('../src/authConn')
-console.log(typeof ac);
 //设置node环境下兼容的fetch函数
 const fetch = require('node-fetch')
 
@@ -27,23 +26,12 @@ describe('模拟测试', () => {
         console.log(ret);
     });
 
-    it('WS模式查询余额', done => {
-        remote.setmode(remote.CommMode.ws).execute('token.random', ['xxxxxxxx-game-gold-root-xxxxxxxxxxxx'], (err, msg) =>{
-            const hmac = remote.createHmac('sha256', msg);
-            let token = hmac.update('03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08').digest('hex'); //计算并附加访问令牌
-
-            remote.execute('wallet.auth', [
-                'bookmansoft',                                                          // 基本校验密码 apiKey
-                'testnet',                                                              // 网络类型 network
-                'primary',                                                              // 钱包编号 walletId
-                'xxxxxxxx-game-gold-root-xxxxxxxxxxxx',                                 // 授权节点编号 cid，用于访问远程钱包时的认证
-                token,                                                                  // 授权节点令牌随机量
-            ], (err, msg) => {
-                remote.execute('balance.all', [], (err, msg)=>{
-                    console.log(msg.result);
-                    done();
-                });
-            });
-        });
+    it('WS模式查询余额', async () => {
+        await remote.setmode(remote.CommMode.ws).login();
+        let ret = await remote.execute('balance.all', []);
+        //注意：使用WS时返回值包含一个嵌套格式，和WEB模式不同
+        console.log('命令序列号', ret.id);
+        console.log('返回值', ret.result);
+        console.log('错误值', ret.error);
     });
 });

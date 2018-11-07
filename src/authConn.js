@@ -59,11 +59,31 @@ class AuthConn
   }
 
   /**
+   * WS模式下的登录流程
+   * @param {*} params 
+   * @param {*} callback 
+   */
+  async login() {
+    let params = this.getTerminalConfig();
+    let msg = await this.setmode(this.CommMode.ws).execute('token.random', [params.cid]);
+    const hmac = this.createHmac('sha256', msg);
+    let token = hmac.update(params.token).digest('hex'); //计算并附加访问令牌
+    
+    return await this.execute('wallet.auth', [
+        params.apiKey,
+        params.type,
+        params.id,
+        params.cid,
+        token,
+    ]);
+  }
+
+  /**
    * 执行RPC调用
    * @param {*} method 
    * @param {*} params 
    */
-  async execute(method, params, callback) {
+  async execute(method, params) {
     params = params || [];
 
     switch(this.mode) {
@@ -72,8 +92,14 @@ class AuthConn
           this.createSocket();
         }
 
-        this.socket.emit('request', method, ...params, callback);
-        break;
+        return new Promise((resolve, reject) => {
+          this.socket.emit('request', method, ...params, (err, msg) => {
+            if(!!err) {
+              reject(err);
+            }
+            resolve(msg);
+          });
+        });
       }
       
       default: {
