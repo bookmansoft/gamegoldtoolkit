@@ -21,12 +21,12 @@ remote.setFetch(fetch).setup(
 );
 
 describe('模拟测试', () => {
-    it.only('RESTFUL/GET 查询区块信息', async () => {
+    it('RESTFUL/GET 查询区块信息', async () => {
         let ret = await remote.get('block/4d80d69a80967c6609fa2606e07fb7e3ad51f8338ce2f31651cb0acdd9250000');
         console.log(ret);
     });
 
-    it.only('RESTFUL/POST 查询UTXO', async () => {
+    it('RESTFUL/POST 查询UTXO', async () => {
         let ret = await remote.post('addrs/utxo', {addr: 'tb1q85plul700aev4xasad0525a777y04wjkpwh74r'});
         console.log(ret);
     });
