@@ -348,6 +348,10 @@ class AuthConn
    * @returns {Remote}
    */
   watch(cb, etype) {
+    if(!this.socket) {
+      this.createSocket();
+    }
+
     this.socket.on(etype, cb);
     return this;
   }
