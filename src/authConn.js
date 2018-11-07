@@ -4,7 +4,7 @@
  * 通过合适的打包程序，也可以用于浏览器环境
  */
 
-const {io, signHMAC, Base64, createHmac, ReturnCode, CommMode, now} = require('./util')
+const {io, signHMAC, Base64, createHmac, ReturnCode, NotifyType, CommMode, now} = require('./util')
 
 /**
  * 终端配置管理
@@ -389,6 +389,7 @@ class AuthConn
  * 通讯模式
  */
 AuthConn.prototype.CommMode = CommMode;
+AuthConn.prototype.NotifyType = NotifyType;
 AuthConn.prototype.ReturnCode = ReturnCode;
 AuthConn.prototype.createHmac = createHmac;
 

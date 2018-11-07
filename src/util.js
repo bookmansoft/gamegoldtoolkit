@@ -14,6 +14,13 @@ const CommMode = {
     post: "post",       //HTTP POST
 }
 
+/**
+ * 下行消息类型
+ */
+const NotifyType = {
+    version: 'version',
+};
+
 function Base64() {
 	// private property
 	const _keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
@@ -148,4 +155,5 @@ exports.Base64 = Base64;
 exports.signHMAC = signHMAC;
 exports.ReturnCode = ReturnCode;
 exports.CommMode = CommMode;
+exports.NotifyType = NotifyType;
 exports.createHmac = createHmac;
