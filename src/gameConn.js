@@ -1,4 +1,4 @@
-const {clone, ReturnCodeName, io, ReturnCode, CommMode} = require('./util')
+const {clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('./util')
 
 /**
  * RPC控件
@@ -37,8 +37,8 @@ class Remote {
         this.close();
 
         this.socket = io(`${this.config.UrlHead}://${ip}:${port}`, {'force new connection': true})
-        .on('notify', ret=>{
-            if(!!ret.type && this.notifyHandles[ret.type]){
+        .on('notify', ret => {
+            if(this.notifyHandles[ret.type]) {
                 this.notifyHandles[ret.type](ret.info);
             }
             else if(!!this.notifyHandles['0']){
@@ -134,7 +134,6 @@ class Remote {
                 'func': '1000',
                 "oemInfo": this.userInfo
             }, msg => {
-                console.log(msg);
                 this.isSuccess(msg);    //返回值
                 if(!!msg.data){
                     this.userInfo.id = msg.data.id;
@@ -145,7 +144,6 @@ class Remote {
         };
 
         this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}}, msg => {
-            //console.log(msg);
             rpc(msg.data.ip, msg.data.port);
         });
     }
@@ -156,7 +154,7 @@ class Remote {
      * @param etype
      * @returns {Remote}
      */
-    watch(cb, etype = '0'){
+    watch(cb, etype = '0') {
         this.notifyHandles[etype] = cb;
         return this;
     }
@@ -476,5 +474,7 @@ class Remote {
 }
 
 Remote.CommMode = CommMode;
+Remote.ReturnCode = ReturnCode;
+Remote.NotifyType = NotifyType;
 
 module.exports = Remote;

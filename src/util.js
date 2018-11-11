@@ -22,7 +22,8 @@ const CommMode = {
  * 下行消息类型
  */
 const NotifyType = {
-    version: 'version',
+    none: 0,            //测试消息
+    test: 9999,            //测试消息
 };
 
 function Base64() {
