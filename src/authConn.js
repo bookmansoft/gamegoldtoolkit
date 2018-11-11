@@ -4,7 +4,7 @@
  * 通过合适的打包程序，也可以用于浏览器环境
  */
 
-const {io, signHMAC, Base64, createHmac, ReturnCode, CommMode, now} = require('./util')
+const {io, signHMAC, Base64, createHmac, ReturnCode, NotifyType, CommMode, now} = require('./util')
 
 /**
  * 终端配置管理
@@ -79,6 +79,74 @@ class AuthConn
         params.cid,
         token,
     ]);
+  }
+
+  /**
+   * 以 GET 方式，访问开放式API
+   * @param {*} url 
+   */
+  async get(url) {
+    const newOptions = { json: true };
+      
+    let conf = this.getTerminalConfig();
+    let _head = !!conf.head ? conf.head : 'http';
+    if(conf.type == 'main') {
+      url = `${_head}://${conf.ip}:7332/public/${url}`;
+    }
+    else {
+      url = `${_head}://${conf.ip}:17332/public/${url}`;
+    }
+
+    newOptions.headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
+    };
+
+    try {
+      if(this.fetch) {
+        let ret = await this.fetch(url, newOptions);
+        return await ret.json();
+      }
+      else {
+        let ret = await fetch(url, newOptions);
+        return await ret.json();
+      }
+    }
+    catch(e) {
+      console.error(e);
+    }
+  }
+
+  async post(url, options) {
+    const newOptions = { json: true, method: 'POST', body: JSON.stringify(options) };
+      
+    let conf = this.getTerminalConfig();
+    let _head = !!conf.head ? conf.head : 'http';
+    if(conf.type == 'main') {
+      url = `${_head}://${conf.ip}:7332/public/${url}`;
+    }
+    else {
+      url = `${_head}://${conf.ip}:17332/public/${url}`;
+    }
+
+    newOptions.headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json; charset=utf-8',
+    };
+
+    try {
+      if(this.fetch) {
+        let ret = await this.fetch(url, newOptions);
+        return await ret.json();
+      }
+      else {
+        let ret = await fetch(url, newOptions);
+        return await ret.json();
+      }
+    }
+    catch(e) {
+      console.error(e);
+    }
   }
 
   /**
@@ -247,6 +315,7 @@ class AuthConn
     newOptions.json = true;
 
     let _head = !!conf.head ? conf.head : 'http';
+
     if(conf.type == 'main') {
       newOptions.uri = `${_head}://${conf.ip}:7332/`;
     }
@@ -289,6 +358,10 @@ class AuthConn
    * @returns {Remote}
    */
   watch(cb, etype) {
+    if(!this.socket) {
+      this.createSocket();
+    }
+
     this.socket.on(etype, cb);
     return this;
   }
@@ -341,6 +414,7 @@ class AuthConn
  * 通讯模式
  */
 AuthConn.prototype.CommMode = CommMode;
+AuthConn.prototype.NotifyType = NotifyType;
 AuthConn.prototype.ReturnCode = ReturnCode;
 AuthConn.prototype.createHmac = createHmac;
 

@@ -5,7 +5,7 @@ const io = require('socket.io-client');
  * 客户端请求返回值，统一定义所有的错误码，每100个为一个大类
  */
 const ReturnCode = {
-    Success: 0,             //操作成功
+    Success: 0,         //操作成功
 };
 
 const CommMode = {
@@ -13,6 +13,13 @@ const CommMode = {
     get: "get",         //HTTP GET
     post: "post",       //HTTP POST
 }
+
+/**
+ * 下行消息类型
+ */
+const NotifyType = {
+    version: 'version',
+};
 
 function Base64() {
 	// private property
@@ -148,4 +155,5 @@ exports.Base64 = Base64;
 exports.signHMAC = signHMAC;
 exports.ReturnCode = ReturnCode;
 exports.CommMode = CommMode;
+exports.NotifyType = NotifyType;
 exports.createHmac = createHmac;
