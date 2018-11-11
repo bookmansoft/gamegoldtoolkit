@@ -40,7 +40,10 @@ const AuthConnConfig = {
 class AuthConn
 {
   constructor() {
-    this.mode = this.CommMode.post;
+    this.notifyHandles = {'0': msg => {
+      console.log('receive unknown server notify: ', msg);
+    }};
+    this.mode = CommMode.post;
     this.io = io;
     this.socket = null;
     this.$params = {
@@ -65,7 +68,7 @@ class AuthConn
    */
   async login() {
     let params = this.getTerminalConfig();
-    let msg = await this.setmode(this.CommMode.ws).execute('token.random', [params.cid]);
+    let msg = await this.setmode(CommMode.ws).execute('token.random', [params.cid]);
     const hmac = this.createHmac('sha256', msg);
     let token = hmac.update(params.token).digest('hex'); //计算并附加访问令牌
     
@@ -208,7 +211,14 @@ class AuthConn
       uri = `${_head}://${conf.ip}:17332/`;
     }
   
-    this.socket = this.io(uri, {'force new connection': true});
+    this.socket = this.io(uri, {'force new connection': true}).on('notify', ret=>{
+      if(!!ret.type && this.notifyHandles[ret.type]){
+          this.notifyHandles[ret.type](ret.info);
+      }
+      else if(!!this.notifyHandles['0']){
+          this.notifyHandles['0'](ret.info);
+      }
+  })
   }
 
   /**
@@ -275,11 +285,22 @@ class AuthConn
   /**
    * 设置服务端推送报文的监控句柄，支持链式调用
    * @param cb            回调
-   * @param etype
+   * @param etype         事件类型
    * @returns {Remote}
    */
   watch(cb, etype) {
     this.socket.on(etype, cb);
+    return this;
+  }
+
+  /**
+   * 设置服务端特定报文Notify的监控句柄，支持链式调用
+   * @param cb            回调
+   * @param etype         事件子类型
+   * @returns {Remote}
+   */
+  watchNotify(cb, etype = '0'){
+    this.notifyHandles[etype] = cb;
     return this;
   }
 
@@ -322,6 +343,10 @@ class AuthConn
 AuthConn.prototype.CommMode = CommMode;
 AuthConn.prototype.ReturnCode = ReturnCode;
 AuthConn.prototype.createHmac = createHmac;
+
+AuthConn.CommMode = CommMode;
+AuthConn.ReturnCode = ReturnCode;
+AuthConn.createHmac = createHmac;
 
 /**
  * 访问游戏金节点的远程调用函数
