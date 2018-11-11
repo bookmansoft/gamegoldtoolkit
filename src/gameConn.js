@@ -1,14 +1,19 @@
-const {io, signHMAC, Base64, createHmac, ReturnCode, CommMode, now} = require('./util')
-let req = require('./req'); //http访问
-let {extendObj,clone} = require('../../facade/util/mixin/comm');
+const {clone, ReturnCodeName, io, ReturnCode, CommMode} = require('./util')
 
-class GameConn {
-    constructor($mode = CommMode.ws){
+/**
+ * RPC控件
+ * @note
+ *      1、根据创建参数，可分别支持WS、Socket、Http三种常用通讯模式，支持Notify、JSONP、Watching等报文通讯模式
+ *      2、支持LBS重定向功能
+ *      3、内部封装了一定的断言功能
+ */
+class Remote {
+    constructor($mode = CommMode.ws, options){
         //切换长短连的标志 http socket
         this.rpcMode = $mode;
 
-        this.configOri = require('../../game.config').servers["Index"][1];  //读取并保存初始配置，不会修改
-        this.config = clone(this.configOri);                                //复制一份配置信息，有可能修改
+        this.configOri = options;                   //读取并保存初始配置，不会修改
+        this.config = clone(this.configOri);        //复制一份配置信息，有可能修改
 
         this.userInfo = {
             domain: this.config.auth.domain,
@@ -18,13 +23,9 @@ class GameConn {
         };
         this.autoLogin = false;
 
+        this.notifyHandles = {};
         /*通过使用统一的socket来保持包含多个交互过程的会话*/
-        this.createSocket(this.config.webserver.mapping, this.config.webserver.port);
-
-        this.tools = {
-            extendObj: extendObj,
-            clone: clone,
-        };
+        this.createSocket(this.config.webserver.host, this.config.webserver.port);
     }
 
     /**
@@ -34,7 +35,31 @@ class GameConn {
      */
     createSocket(ip, port){
         this.close();
-        this.socket = io(`${this.config.UrlHead}://${ip}:${port}`, {'force new connection': true});
+
+        this.socket = io(`${this.config.UrlHead}://${ip}:${port}`, {'force new connection': true})
+        .on('notify', ret=>{
+            if(!!ret.type && this.notifyHandles[ret.type]){
+                this.notifyHandles[ret.type](ret.info);
+            }
+            else if(!!this.notifyHandles['0']){
+                this.notifyHandles['0'](ret.info);
+            }
+        });
+    }
+
+    /**
+     * 断言
+     * @param {*} obj       待检测对象, 有可能为0 (ReturnCode.Success)
+     * @param {*} equal     对比值
+     */
+    expect(obj, equal) {
+        if(typeof equal == 'undefined' && !obj) {
+            throw new Error('empty object');
+        }
+        if(!!equal && obj !== equal) {
+            throw new Error('not equal result');
+        }
+        return true;
     }
 
     /**
@@ -46,21 +71,19 @@ class GameConn {
             //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
             this.locate(ip, port).$UrlRequest({id: this.userInfo.openid}, msg=>{
                 //客户端从模拟网关取得了签名集
-                if(!msg.sign) {
-                    throw new Error('msg.sign can not to be empty');
-                }
+                //this.log(msg);
+
+                this.expect(msg.sign); //服务端回调地址
 
                 //将签名集发送到服务端进行验证、注册、绑定
-                this.fetch({
+                this.fetching({
                     'func': '1000',
                     "oemInfo": {
                         "domain": this.userInfo.domain /*指定第三方平台类型*/,
                         "auth":msg /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
                     }
                 }, msg => {
-                    if(!msg || msg.code != ReturnCode.Success) {
-                        throw new Error('operation failed');
-                    }
+                    this.isSuccess(msg);    //返回值
                     if(!!msg.data){
                         this.userInfo.id = msg.data.id;
                         this.userInfo.token = msg.data.token;
@@ -70,7 +93,8 @@ class GameConn {
             }, `auth360.html`);
         };
 
-        this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetch({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}}, msg => {
+        this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}}, msg => {
+            //console.log(msg);
             rpc(msg.data.ip, msg.data.port);
         });
     }
@@ -83,13 +107,14 @@ class GameConn {
         let rpc = (ip, port)=>{
             this.locate(ip, port).$UrlRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey}, msg=>{
                 //将签名集发送到服务端进行验证、注册、绑定
-                this.fetch({
+                this.fetching({
                     'func': 'admin.login',
                     "oemInfo": {
                         "domain": this.userInfo.domain /*指定第三方平台类型*/,
                         "auth":msg /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
                     }
                 }, msg => {
+                    //this.isSuccess(msg);    //返回值
                     if(!!msg.data){
                         this.userInfo.id = msg.data.id;
                         this.userInfo.token = msg.data.token;
@@ -105,13 +130,12 @@ class GameConn {
     authOfTx(cb) {
         let rpc = (ip, port) => {
             //腾讯登录：上行openid、openkey，服务端验证后返回结果
-            this.locate(ip, port).fetch({
+            this.locate(ip, port).fetching({
                 'func': '1000',
                 "oemInfo": this.userInfo
             }, msg => {
-                if(!msg || msg.code != ReturnCode.Success) {
-                    throw new Error('operation failed');
-                }
+                console.log(msg);
+                this.isSuccess(msg);    //返回值
                 if(!!msg.data){
                     this.userInfo.id = msg.data.id;
                     this.userInfo.token = msg.data.token;
@@ -120,9 +144,21 @@ class GameConn {
             });
         };
 
-        this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetch({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}}, msg => {
+        this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}}, msg => {
+            //console.log(msg);
             rpc(msg.data.ip, msg.data.port);
         });
+    }
+
+    /**
+     * 设置服务端推送报文的监控句柄，支持链式调用
+     * @param cb            回调
+     * @param etype
+     * @returns {Remote}
+     */
+    watch(cb, etype = '0'){
+        this.notifyHandles[etype] = cb;
+        return this;
     }
 
     auth(ui, cb){
@@ -152,6 +188,66 @@ class GameConn {
         else{
             return this;
         }
+    }
+
+    /**
+     * 判断返回值是否成功
+     * @param msg       网络报文
+     * @param out       强制打印日志
+     * @returns {*}
+     */
+    isSuccess(msg, out=false){
+        this.expect(msg);
+        msg.msg = ReturnCodeName[msg.code];
+
+        if((msg.code != ReturnCode.Success) || out){
+            this.log(msg);
+        }
+        return this.expect(msg.code, ReturnCode.Success);
+    }
+
+    /**
+     * 直接打印各种对象
+     * @param val
+     */
+    log(val){
+        if(!val){
+            console.log('undefined');
+            return;
+        }
+
+        if(!!val.code){
+            val.msg = ReturnCodeName[val.code];
+        }
+
+        switch(typeof val){
+            case 'number':
+            case 'string':
+            case 'boolean':
+                console.log(val);
+                break;
+            case 'function':
+                console.log(val());
+                break;
+            case 'undefined':
+                console.log('err: undefined');
+                break;
+            default:
+                console.log(JSON.stringify(val));
+                break;
+        }
+    }
+
+    get newone(){
+        return new Remote();
+    }
+
+    /**
+     * 获取新的远程对象
+      * @returns {Remote}
+     */
+    get new(){
+        return new Remote();
     }
 
     /**
@@ -201,28 +297,37 @@ class GameConn {
     }
 
     /**
+     * 为了提供node下的兼容性而添加的属性设定函数
+     * @param {*} fn 
+     */
+    setFetch(fn) {
+        this.fetch = fn;
+        return this;
+    }
+
+    /**
      * 向服务端提交请求,默认JSONP模式
      * @param command       命令名称，格式: obj.func, 可以缩写为 func，此时obj为默认值'index'，例如 index.setNewbie 等价于 setNewbie
      * @param params        命令参数，JSON对象
      * @param callback      回调函数
      * @returns {*}
      */
-    fetch(params, callback, url=null){
+    fetching(params, callback, url=null){
         if(this.autoLogin){
             return this.$login(msg=>{
-                if(!msg || msg.code != ReturnCode.Success) {
-                    throw new Error('operation failed');
+                if(!!msg){
+                    this.isSuccess(msg);
                 }
-                this.fetch(params, callback, url);
+                this.fetching(params, callback, url);
             });
         }
-
-        this.parseParams(params);
 
         if(!!url){
             this.$UrlRequest(params, callback, url);
         }
         else{
+            this.parseParams(params);
+            
             switch(this.rpcMode){
                 case CommMode.ws:
                     if(!callback){
@@ -245,23 +350,13 @@ class GameConn {
      * 设定远程服务器地址
      * @param ip
      * @param port
-     * @returns {GameConn}
+     * @returns {Remote}
      */
     locate(ip, port){
         this.config.webserver.host = ip;
         this.config.webserver.port = port;
 
         this.createSocket(ip, port);
-        return this;
-    }
-
-
-    /**
-     * 为了提供node下的兼容性而添加的属性设定函数
-     * @param {*} fn 
-     */
-    setFetch(fn) {
-        this.fetch = fn;
         return this;
     }
 
@@ -311,6 +406,56 @@ class GameConn {
     }
 
     /**
+     * 以 GET 方式，访问开放式API
+     * @param {*} url 
+     */
+    async get(url) {
+        const newOptions = { json: true };
+        
+        newOptions.headers = {
+            Accept: 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
+        };
+
+        try {
+            if(this.fetch) {
+                let ret = await this.fetch(url, newOptions);
+                return await ret.json();
+            }
+            else {
+                let ret = await fetch(url, newOptions);
+                return await ret.json();
+            }
+        }
+        catch(e) {
+            console.error(e);
+        }
+    }
+
+    async post(url, options) {
+        const newOptions = { json: true, method: 'POST', body: JSON.stringify(options) };
+        
+        newOptions.headers = {
+            Accept: 'application/json',
+            'Content-Type': 'application/json; charset=utf-8',
+        };
+
+        try {
+            if(this.fetch) {
+                let ret = await this.fetch(url, newOptions);
+                return await ret.json();
+            }
+            else {
+                let ret = await fetch(url, newOptions);
+                return await ret.json();
+            }
+        }
+        catch(e) {
+            console.error(e);
+        }
+    }
+  
+    /**
      * (内部函数)发起基于Http协议的RPC请求
      * @param params
      * @param callback
@@ -318,14 +463,18 @@ class GameConn {
      * @constructor
      */
     $UrlRequest(params, callback, url){
+        this.parseParams(params);
+
         url = !!url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
         url += "?" + Object.keys(params).reduce((ret, next)=>{
                 if(ret != ''){ ret += '&'; }
                 return ret + next + "=" + ((typeof params[next]) == "object" ? JSON.stringify(params[next]) : params[next]);
             }, '');
 
-        req.pGetUrl(url).then(callback);
+        this.get(url).then(callback);
     }
 }
 
-module.exports = GameConn
+Remote.CommMode = CommMode;
+
+module.exports = Remote;
