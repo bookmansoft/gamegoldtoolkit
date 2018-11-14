@@ -69,7 +69,7 @@ class Remote {
     authOf360(cb){
         let rpc = (ip, port)=>{
             //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-            this.locate(ip, port).$UrlRequest({id: this.userInfo.openid}, msg=>{
+            this.locate(ip, port).getRequest({id: this.userInfo.openid}, msg=>{
                 //客户端从模拟网关取得了签名集
                 //this.log(msg);
 
@@ -105,7 +105,7 @@ class Remote {
      */
     authOfAdmin(cb){
         let rpc = (ip, port)=>{
-            this.locate(ip, port).$UrlRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey}, msg=>{
+            this.locate(ip, port).getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey}, msg=>{
                 //将签名集发送到服务端进行验证、注册、绑定
                 this.fetching({
                     'func': 'admin.login',
@@ -257,7 +257,7 @@ class Remote {
             cb = ()=>{};
         }
 
-        if(this.autoLogin){
+        if(this.autoLogin) {
             this.autoLogin = false;
             switch(this.userInfo.domain){
                 case "admin":
@@ -311,8 +311,8 @@ class Remote {
      * @returns {*}
      */
     fetching(params, callback, url=null){
-        if(this.autoLogin){
-            return this.$login(msg=>{
+        if(this.autoLogin) {
+            return this.$login(msg => {
                 if(!!msg){
                     this.isSuccess(msg);
                 }
@@ -320,8 +320,8 @@ class Remote {
             });
         }
 
-        if(!!url){
-            this.$UrlRequest(params, callback, url);
+        if(!!url) {
+            this.getRequest(params, callback, url);
         }
         else{
             this.parseParams(params);
@@ -336,8 +336,12 @@ class Remote {
                     }
                     break;
 
-                default:
-                    this.$UrlRequest(params, callback, url);
+                case CommMode.get:
+                    this.getRequest(params, callback, url);
+                    break;
+
+                case CommMode.post:
+                    this.postRequest(params, callback, url);
                     break;
             }
         }
@@ -460,7 +464,7 @@ class Remote {
      * @param url
      * @constructor
      */
-    $UrlRequest(params, callback, url){
+    getRequest(params, callback, url){
         this.parseParams(params);
 
         url = !!url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
@@ -470,6 +474,13 @@ class Remote {
             }, '');
 
         this.get(url).then(callback);
+    }
+
+    postRequest(params, callback, url){
+        this.parseParams(params);
+
+        url = !!url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        this.post(url, params).then(callback);
     }
 }
 
