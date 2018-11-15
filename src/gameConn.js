@@ -65,7 +65,7 @@ class Remote {
 
         if(!!msg && msg.code == ReturnCode.Success) {
             //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-            msg = await this.locate(msg.data.ip, msg.data.port).getRequest({id: this.userInfo.openid, url: `auth360.html`});
+            msg = await this.locate(msg.data.ip, msg.data.port).getRequest({id: this.userInfo.openid, thirdUrl: `auth360.html`});
 
             //客户端从模拟网关取得了签名集
             if(!msg || msg.sign) {
@@ -95,7 +95,7 @@ class Remote {
      */
     async authOfAdmin(){
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
-            .getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey, url: `authAdmin.html`});
+            .getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey, thirdUrl: `authAdmin.html`});
 
         if(!!msg && msg.code == ReturnCode.Success) {
             //将签名集发送到服务端进行验证、注册、绑定
@@ -289,7 +289,7 @@ class Remote {
             return this.fetching(params);
         }
 
-        if(!!params.url) {
+        if(!!params.thirdUrl) {
             return this.getRequest(params);
         }
         else {
@@ -436,7 +436,7 @@ class Remote {
     async getRequest(params) {
         this.parseParams(params);
 
-        let url = !!params.url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let url = !!params.thirdUrl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.thirdUrl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
         url += "?" + Object.keys(params).reduce((ret, next)=>{
                 if(ret != ''){ ret += '&'; }
                 return ret + next + "=" + ((typeof params[next]) == "object" ? JSON.stringify(params[next]) : params[next]);
@@ -452,7 +452,7 @@ class Remote {
     async postRequest(params) {
         this.parseParams(params);
 
-        let url = !!params.url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let url = !!params.thirdUrl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.thirdUrl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
 
         return this.post(url, params);
     }
