@@ -6,11 +6,9 @@
 <body>
 	<div id='content'></div>
 	<script>
-		//签名验证函数
-		//toolkit.verifyData({});
-
-		//授权式连接器
+		//获取授权式连接器
 		let remote = new toolkit.conn();
+
 		//设置连接参数
 		remote.setup({
 			type:   'testnet',            //对等网络类型，分为 testnet 和 main

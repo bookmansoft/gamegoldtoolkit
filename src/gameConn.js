@@ -29,6 +29,15 @@ class Remote {
     }
 
     /**
+     * 修改通讯模式
+     * @param {*} $mode 
+     */
+    setmode($mode) {
+        this.rpcMode = $mode;
+        return this;
+    }
+
+    /**
      * 创建通讯连接组件
      * @param {*} ip 
      * @param {*} port 
@@ -48,104 +57,76 @@ class Remote {
     }
 
     /**
-     * 断言
-     * @param {*} obj       待检测对象, 有可能为0 (ReturnCode.Success)
-     * @param {*} equal     对比值
-     */
-    expect(obj, equal) {
-        if(typeof equal == 'undefined' && !obj) {
-            throw new Error('empty object');
-        }
-        if(!!equal && obj !== equal) {
-            throw new Error('not equal result');
-        }
-        return true;
-    }
-
-    /**
      * 类360的认证流程
-     * @param {*} cb 
      */
-    authOf360(cb){
-        let rpc = (ip, port)=>{
-            //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-            this.locate(ip, port).getRequest({id: this.userInfo.openid}, msg=>{
-                //客户端从模拟网关取得了签名集
-                //this.log(msg);
+    async authOf360() {
+        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
+            .fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
+        
+        //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
+        msg = await this.locate(msg.data.ip, msg.data.port).getRequest({id: this.userInfo.openid, url: `auth360.html`});
 
-                this.expect(msg.sign); //服务端回调地址
+        //客户端从模拟网关取得了签名集
+        if(!msg || msg.sign) {
+            throw new Error('login: empty sign');
+        }
 
-                //将签名集发送到服务端进行验证、注册、绑定
-                this.fetching({
-                    'func': '1000',
-                    "oemInfo": {
-                        "domain": this.userInfo.domain /*指定第三方平台类型*/,
-                        "auth":msg /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
-                    }
-                }, msg => {
-                    this.isSuccess(msg);    //返回值
-                    if(!!msg.data){
-                        this.userInfo.id = msg.data.id;
-                        this.userInfo.token = msg.data.token;
-                    }
-                    cb(msg);
-                });
-            }, `auth360.html`);
-        };
-
-        this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}}, msg => {
-            //console.log(msg);
-            rpc(msg.data.ip, msg.data.port);
+        //将签名集发送到服务端进行验证、注册、绑定
+        msg = await this.fetching({
+            'func': '1000',
+            "oemInfo": {
+                "domain": this.userInfo.domain  /*指定第三方平台类型*/,
+                "auth":msg                      /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
+            }
         });
+
+        if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
+            this.userInfo.id = msg.data.id;
+            this.userInfo.token = msg.data.token;
+        }
+
+        return msg;
     }
 
     /**
      * 后台管理员的登录验证流程
-     * @param cb
      */
-    authOfAdmin(cb){
-        let rpc = (ip, port)=>{
-            this.locate(ip, port).getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey}, msg=>{
-                //将签名集发送到服务端进行验证、注册、绑定
-                this.fetching({
-                    'func': 'admin.login',
-                    "oemInfo": {
-                        "domain": this.userInfo.domain /*指定第三方平台类型*/,
-                        "auth":msg /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
-                    }
-                }, msg => {
-                    //this.isSuccess(msg);    //返回值
-                    if(!!msg.data){
-                        this.userInfo.id = msg.data.id;
-                        this.userInfo.token = msg.data.token;
-                    }
-                    cb(msg);
-                });
-            }, `authAdmin.html`);
-        };
+    async authOfAdmin(){
+        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
+            .getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey, url: `authAdmin.html`});
 
-        rpc(this.configOri.webserver.host, this.configOri.webserver.port);
+        //将签名集发送到服务端进行验证、注册、绑定
+        msg = await this.fetching({
+            'func': 'admin.login',
+            "oemInfo": {
+                "domain": this.userInfo.domain /*指定第三方平台类型*/,
+                "auth":msg /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
+            }
+        });
+
+        if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
+            this.userInfo.id = msg.data.id;
+            this.userInfo.token = msg.data.token;
+        }
+
+        return msg;
     }
 
-    authOfTx(cb) {
-        let rpc = (ip, port) => {
-            //腾讯登录：上行openid、openkey，服务端验证后返回结果
-            this.locate(ip, port).fetching({
-                'func': '1000',
-                "oemInfo": this.userInfo
-            }, msg => {
-                this.isSuccess(msg);    //返回值
-                if(!!msg.data){
-                    this.userInfo.id = msg.data.id;
-                    this.userInfo.token = msg.data.token;
-                }
-                cb(msg);
-            });
-        };
+    async authOfTx() {
+        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
 
-        this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}}, msg => {
-            rpc(msg.data.ip, msg.data.port);
+        //腾讯登录：上行openid、openkey，服务端验证后返回结果
+        msg = await this.locate(msg.data.ip, msg.data.port).fetching({
+            'func': '1000',
+            "oemInfo": this.userInfo
         });
+    
+        if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
+            this.userInfo.id = msg.data.id;
+            this.userInfo.token = msg.data.token;
+        }
+
+        return msg;
     }
 
     /**
@@ -159,8 +140,12 @@ class Remote {
         return this;
     }
 
-    auth(ui, cb){
-        if(!!ui){
+    /**
+     * 执行登录流程，获取登录应答
+     * @param {*} ui 
+     */
+    async login(ui) {
+        if(!!ui) {
             if(!!ui.domain){
                 this.userInfo.domain = ui.domain;
             }
@@ -173,19 +158,11 @@ class Remote {
             if(!!ui.pf){
                 this.userInfo.pf = ui.pf;
             }
-            if(!!ui.directly){
-                this.userInfo.directly = ui.directly;
-            }
         }
         this.userInfo.token = null; //清空先前缓存的token
         this.autoLogin = true;
 
-        if(!!cb){
-            return this.$login(cb);
-        }
-        else{
-            return this;
-        }
+        return this.$login();
     }
 
     /**
@@ -194,14 +171,18 @@ class Remote {
      * @param out       强制打印日志
      * @returns {*}
      */
-    isSuccess(msg, out=false){
-        this.expect(msg);
+    isSuccess(msg, out=false) {
+        if(!msg) {
+            return false;
+        }
+
         msg.msg = ReturnCodeName[msg.code];
 
         if((msg.code != ReturnCode.Success) || out){
             this.log(msg);
         }
-        return this.expect(msg.code, ReturnCode.Success);
+
+        return msg.code == ReturnCode.Success;
     }
 
     /**
@@ -252,46 +233,29 @@ class Remote {
      * 执行认证流程，成功后调用由参数cb指定的回调
      * @param {*} cb 回调
      */
-    $login(cb){
-        if(!cb){
-            cb = ()=>{};
-        }
-
+    async $login() {
         if(this.autoLogin) {
             this.autoLogin = false;
-            switch(this.userInfo.domain){
-                case "admin":
-                    this.authOfAdmin(msg=>{
-                        cb(msg);
-                    });
-                    break;
-                case "360.IOS":
-                case "360.Android":
-                case "360.Test":
-                case "360":
-                    this.authOf360(msg=>{
-                        cb(msg);
-                    });
-                    break;
-                case "tx.IOS":
-                case "tx.Android":
-                case "tx.Test":
-                case "tx":
-                    this.authOfTx(msg=>{
-                        cb(msg);
-                    }, this.userInfo.domain);
-                    break;
-                case "official":
-                    this.authOf360(msg=>{
-                        cb(msg);
-                    });
-                    break;
+            switch(this.userInfo.domain.split('.')[0]) {
+                case "admin": {
+                    return this.authOfAdmin();
+                }
+
+                case "360": {
+                    return this.authOf360();
+                }
+
+                case "tx": {
+                    return this.authOfTx();
+                }
+
+                case "official": {
+                    return this.authOf360();
+                }
             }
         }
-        else{
-            cb(null);
-        }
-        return this;
+
+        return Promise.resolve();
     }
 
     /**
@@ -305,47 +269,46 @@ class Remote {
 
     /**
      * 向服务端提交请求,默认JSONP模式
-     * @param command       命令名称，格式: obj.func, 可以缩写为 func，此时obj为默认值'index'，例如 index.setNewbie 等价于 setNewbie
      * @param params        命令参数，JSON对象
+     *      .command    命令名称，格式: obj.func, 可以缩写为 func，此时obj为默认值'index'，例如 index.setNewbie 等价于 setNewbie
+     *      .url        附加url地址
      * @param callback      回调函数
      * @returns {*}
      */
-    fetching(params, callback, url=null){
+    async fetching(params) {
         if(this.autoLogin) {
-            return this.$login(msg => {
-                if(!!msg){
-                    this.isSuccess(msg);
-                }
-                this.fetching(params, callback, url);
-            });
+            await this.$login();
+            return this.fetching(params);
         }
 
-        if(!!url) {
-            this.getRequest(params, callback, url);
+        if(!!params.url) {
+            return this.getRequest(params);
         }
-        else{
+        else {
             this.parseParams(params);
             
-            switch(this.rpcMode){
+            switch(this.rpcMode) {
                 case CommMode.ws:
-                    if(!callback){
-                        this.socket.emit('notify', params);
-                    }
-                    else{
-                        this.socket.emit('req', params, callback);
-                    }
-                    break;
+                    return new Promise((resolve, reject) => {
+                        try {
+                            this.socket.emit('req', params, msg => {
+                                resolve(msg);
+                            });
+                        }
+                        catch(e) {
+                            reject(e);
+                        }
+                    });
 
                 case CommMode.get:
-                    this.getRequest(params, callback, url);
-                    break;
+                    return this.getRequest(params);
 
                 case CommMode.post:
-                    this.postRequest(params, callback, url);
-                    break;
+                    return this.postRequest(params);
             }
         }
-        return this;
+
+        return Promise.reject();
     }
 
     /**
@@ -365,19 +328,20 @@ class Remote {
     /**
      * 关闭长连接
      */
-    close(){
+    close() {
         if(this.socket){
             this.socket.removeAllListeners();
             this.socket.disconnect();
             this.socket = null;
         }
+        return this;
     }
 
     /**
      * 参数调整
      * @param params
      */
-    parseParams(params){
+    parseParams(params) {
         params.func = !!params.func ? params.func : 'index.login';
         //填充自动登录参数
         let arr = params.func.split('.');
@@ -408,8 +372,8 @@ class Remote {
     }
 
     /**
-     * 以 GET 方式，访问开放式API
-     * @param {*} url 
+     * 以 GET 方式访问远程API
+     * @param {*} url       远程地址
      */
     async get(url) {
         const newOptions = { json: true };
@@ -419,21 +383,21 @@ class Remote {
             'Content-Type': 'application/json; charset=utf-8',
         };
 
-        try {
-            if(this.fetch) {
-                let ret = await this.fetch(url, newOptions);
-                return await ret.json();
-            }
-            else {
-                let ret = await fetch(url, newOptions);
-                return await ret.json();
-            }
+        if(this.fetch) {
+            let ret = await this.fetch(url, newOptions);
+            return await ret.json();
         }
-        catch(e) {
-            console.error(e);
+        else {
+            let ret = await fetch(url, newOptions);
+            return await ret.json();
         }
     }
 
+    /**
+     * 以 POST 方式访问远程API
+     * @param {*} url       远程地址
+     * @param {*} options   body
+     */
     async post(url, options) {
         const newOptions = { json: true, method: 'POST', body: JSON.stringify(options) };
         
@@ -460,27 +424,29 @@ class Remote {
     /**
      * (内部函数)发起基于Http协议的RPC请求
      * @param params
-     * @param callback
-     * @param url
-     * @constructor
      */
-    getRequest(params, callback, url){
+    async getRequest(params) {
         this.parseParams(params);
 
-        url = !!url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let url = !!params.url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
         url += "?" + Object.keys(params).reduce((ret, next)=>{
                 if(ret != ''){ ret += '&'; }
                 return ret + next + "=" + ((typeof params[next]) == "object" ? JSON.stringify(params[next]) : params[next]);
             }, '');
 
-        this.get(url).then(callback);
+        return this.get(url);
     }
 
-    postRequest(params, callback, url){
+    /**
+     * (内部函数)发起基于Http协议的RPC请求
+     * @param params
+     */
+    async postRequest(params) {
         this.parseParams(params);
 
-        url = !!url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
-        this.post(url, params).then(callback);
+        let url = !!params.url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+
+        return this.post(url, params);
     }
 }
 
