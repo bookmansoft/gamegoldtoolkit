@@ -62,29 +62,31 @@ class Remote {
     async authOf360() {
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
             .fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
-        
-        //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-        msg = await this.locate(msg.data.ip, msg.data.port).getRequest({id: this.userInfo.openid, url: `auth360.html`});
 
-        //客户端从模拟网关取得了签名集
-        if(!msg || msg.sign) {
-            throw new Error('login: empty sign');
-        }
+        if(!!msg && msg.code == ReturnCode.Success) {
+            //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
+            msg = await this.locate(msg.data.ip, msg.data.port).getRequest({id: this.userInfo.openid, url: `auth360.html`});
 
-        //将签名集发送到服务端进行验证、注册、绑定
-        msg = await this.fetching({
-            'func': '1000',
-            "oemInfo": {
-                "domain": this.userInfo.domain  /*指定第三方平台类型*/,
-                "auth":msg                      /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
+            //客户端从模拟网关取得了签名集
+            if(!msg || msg.sign) {
+                throw new Error('login: empty sign');
             }
-        });
 
-        if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
-            this.userInfo.id = msg.data.id;
-            this.userInfo.token = msg.data.token;
+            //将签名集发送到服务端进行验证、注册、绑定
+            msg = await this.fetching({
+                'func': '1000',
+                "oemInfo": {
+                    "domain": this.userInfo.domain  /*指定第三方平台类型*/,
+                    "auth":msg                      /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
+                }
+            });
+
+            if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
+                this.userInfo.id = msg.data.id;
+                this.userInfo.token = msg.data.token;
+            }
         }
-
+        
         return msg;
     }
 
@@ -95,37 +97,43 @@ class Remote {
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
             .getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey, url: `authAdmin.html`});
 
-        //将签名集发送到服务端进行验证、注册、绑定
-        msg = await this.fetching({
-            'func': 'admin.login',
-            "oemInfo": {
-                "domain": this.userInfo.domain /*指定第三方平台类型*/,
-                "auth":msg /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
-            }
-        });
+        if(!!msg && msg.code == ReturnCode.Success) {
+            //将签名集发送到服务端进行验证、注册、绑定
+            msg = await this.fetching({
+                'func': 'admin.login',
+                "oemInfo": {
+                    "domain": this.userInfo.domain /*指定第三方平台类型*/,
+                    "auth":msg /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
+                }
+            });``
 
-        if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
-            this.userInfo.id = msg.data.id;
-            this.userInfo.token = msg.data.token;
+            if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
+                this.userInfo.id = msg.data.id;
+                this.userInfo.token = msg.data.token;
+            }
         }
 
         return msg;
     }
 
     async authOfTx() {
-        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port).fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
+        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
+            .fetching({
+                "func": "config.getServerInfo", 
+                "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
 
-        //腾讯登录：上行openid、openkey，服务端验证后返回结果
-        msg = await this.locate(msg.data.ip, msg.data.port).fetching({
-            'func': '1000',
-            "oemInfo": this.userInfo
-        });
-    
-        if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
-            this.userInfo.id = msg.data.id;
-            this.userInfo.token = msg.data.token;
+        if(!!msg && msg.code == ReturnCode.Success) {
+            //腾讯登录：上行openid、openkey，服务端验证后返回结果
+            msg = await this.locate(msg.data.ip, msg.data.port).fetching({
+                'func': '1000',
+                "oemInfo": this.userInfo
+            });
+        
+            if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
+                this.userInfo.id = msg.data.id;
+                this.userInfo.token = msg.data.token;
+            }
         }
-
         return msg;
     }
 
@@ -218,7 +226,7 @@ class Remote {
     }
 
     get newone(){
-        return new Remote();
+        return new Remote(this.rpcMode, this.configOri);
     }
 
     /**
@@ -226,7 +234,7 @@ class Remote {
       * @returns {Remote}
      */
     get new(){
-        return new Remote();
+        return new Remote(this.rpcMode, this.configOri);
     }
 
     /**
@@ -428,7 +436,7 @@ class Remote {
     async getRequest(params) {
         this.parseParams(params);
 
-        let url = !!params.url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let url = !!params.url ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.url}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
         url += "?" + Object.keys(params).reduce((ret, next)=>{
                 if(ret != ''){ ret += '&'; }
                 return ret + next + "=" + ((typeof params[next]) == "object" ? JSON.stringify(params[next]) : params[next]);
