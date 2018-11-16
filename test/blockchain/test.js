@@ -4,7 +4,7 @@
 
 //引入授权式连接器
 const sclient = require('socket.io-client')
-const conn = require('../src/authConn')
+const conn = require('../../src/authConn')
 //设置node环境下兼容的fetch函数
 const fetch = require('node-fetch')
 

@@ -33,7 +33,7 @@ describe.only('游戏云基本连接测试', () => {
      */
     it('注册并登录 - 自动负载均衡'/*单元测试的标题*/, /*单元测试的函数体，书写测试流程*/ async () => {
         try {
-            msg = await remote.fetching({func: "2001"});
+            msg = await remote.fetching({func: "getEffect"});
             remote.isSuccess(msg, true);
         }
         catch(e) {
