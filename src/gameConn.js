@@ -59,16 +59,16 @@ class Remote {
     /**
      * 类360的认证流程
      */
-    async authOf360() {
+    async authOfBasic() {
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
             .fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
 
         if(!!msg && msg.code == ReturnCode.Success) {
             //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-            msg = await this.locate(msg.data.ip, msg.data.port).getRequest({id: this.userInfo.openid, thirdUrl: `auth360.html`});
+            msg = await this.locate(msg.data.ip, msg.data.port).getRequest({id: this.userInfo.openid, authControl: this.userInfo.authControl || `auth360.html`});
 
             //客户端从模拟网关取得了签名集
-            if(!msg || msg.sign) {
+            if(!msg || !msg.sign) {
                 throw new Error('login: empty sign');
             }
 
@@ -76,8 +76,9 @@ class Remote {
             msg = await this.fetching({
                 'func': '1000',
                 "oemInfo": {
-                    "domain": this.userInfo.domain  /*指定第三方平台类型*/,
-                    "auth":msg                      /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
+                    "domain": this.userInfo.domain,             //指定第三方平台类型
+                    "authControl": this.userInfo.authControl,   //自定义验签
+                    "auth":msg                                  //发送签名集
                 }
             });
 
@@ -95,7 +96,7 @@ class Remote {
      */
     async authOfAdmin(){
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
-            .getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey, thirdUrl: `authAdmin.html`});
+            .getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey, authControl: `authAdmin.html`});
 
         if(!!msg && msg.code == ReturnCode.Success) {
             //将签名集发送到服务端进行验证、注册、绑定
@@ -154,17 +155,20 @@ class Remote {
      */
     async login(ui) {
         if(!!ui) {
-            if(!!ui.domain){
+            if(!!ui.domain) {
                 this.userInfo.domain = ui.domain;
             }
-            if(!!ui.openid){
+            if(!!ui.openid) {
                 this.userInfo.openid = ui.openid;
             }
-            if(!!ui.openkey){
+            if(!!ui.openkey) {
                 this.userInfo.openkey = ui.openkey;
             }
-            if(!!ui.pf){
+            if(!!ui.pf) {
                 this.userInfo.pf = ui.pf;
+            }
+            if(!!ui.authControl) {
+                this.userInfo.authControl = ui.authControl;
             }
         }
         this.userInfo.token = null; //清空先前缓存的token
@@ -249,16 +253,12 @@ class Remote {
                     return this.authOfAdmin();
                 }
 
-                case "360": {
-                    return this.authOf360();
-                }
-
                 case "tx": {
                     return this.authOfTx();
                 }
 
-                case "official": {
-                    return this.authOf360();
+                default: {
+                    return this.authOfBasic();
                 }
             }
         }
@@ -289,7 +289,7 @@ class Remote {
             return this.fetching(params);
         }
 
-        if(!!params.thirdUrl) {
+        if(!!params.authControl) {
             return this.getRequest(params);
         }
         else {
@@ -436,7 +436,7 @@ class Remote {
     async getRequest(params) {
         this.parseParams(params);
 
-        let url = !!params.thirdUrl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.thirdUrl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let url = !!params.authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
         url += "?" + Object.keys(params).reduce((ret, next)=>{
                 if(ret != ''){ ret += '&'; }
                 return ret + next + "=" + ((typeof params[next]) == "object" ? JSON.stringify(params[next]) : params[next]);
@@ -452,7 +452,7 @@ class Remote {
     async postRequest(params) {
         this.parseParams(params);
 
-        let url = !!params.thirdUrl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.thirdUrl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let url = !!params.authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
 
         return this.post(url, params);
     }
