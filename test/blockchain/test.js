@@ -3,14 +3,11 @@
  */
 
 //引入授权式连接器
-const sclient = require('socket.io-client')
 const conn = require('../../src/authConn')
-//设置node环境下兼容的fetch函数
-const fetch = require('node-fetch')
+let remote = new conn();
 
-let remote = new conn(sclient);
-remote.setFetch(fetch).setup(
-    {//设置授权式连接器的网络类型和对应参数，网络类型分为 testnet 和 main
+remote.setFetch(require('node-fetch')) //设置node环境下兼容的fetch函数
+.setup({//设置授权式连接器的网络类型和对应参数，网络类型分为 testnet 和 main
         type:   'testnet',            //远程全节点类型
         ip:     '127.0.0.1',          //远程全节点地址
         apiKey: 'bookmansoft',        //远程全节点基本校验密码
