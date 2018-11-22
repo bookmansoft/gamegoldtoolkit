@@ -21,7 +21,7 @@ let remote = new conn(conn.CommMode.get, {
 })
 .setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 
-describe.only('游戏云基本连接测试', () => {
+describe('游戏云基本连接测试', () => {
     beforeEach(async () => {
         let msg = await remote.login({domain: 'tx.IOS', openid: `${Math.random()*1000000000 | 0}`});
         remote.isSuccess(msg);

@@ -61,25 +61,69 @@ class AuthConn
     return this;
   }
 
+  async retoken() {
+    let params = this.getTerminalConfig();
+    let msg = await this.setmode(CommMode.ws).execute('token.random', [params.cid]);
+    const hmac = this.createHmac('sha256', msg);
+    params.calc = hmac.update(params.token).digest('hex'); //计算并附加访问令牌
+
+    return params;
+  }
+
   /**
    * WS模式下的登录流程
    * @param {*} params 
    * @param {*} callback 
    */
   async login() {
-    let params = this.getTerminalConfig();
-    let msg = await this.setmode(CommMode.ws).execute('token.random', [params.cid]);
-    const hmac = this.createHmac('sha256', msg);
-    let token = hmac.update(params.token).digest('hex'); //计算并附加访问令牌
+    let params = await this.retoken();
     
     return await this.execute('wallet.auth', [
         params.apiKey,
         params.type,
         params.id,
         params.cid,
-        token,
+        params.calc,
     ]);
   }
+
+  /**
+   * Listen for events on wallet id.
+   * @returns {Promise}
+   */
+
+  async join() {
+    let params = await this.retoken();
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('request', 'wallet.join', params.id, params.cid, params.calc, (err) => {
+        if (!!err) {
+          console.log(err);
+          reject(new Error(err.message));
+          return;
+        }
+        resolve();
+      });
+    });
+  };
+
+  /**
+   * Unlisten for events on wallet id.
+   */
+
+  async leave() {
+    let params = this.getTerminalConfig();
+
+    return new Promise((resolve, reject) => {
+      this.socket.emit('request', 'wallet.leave', params.id, (err) => {
+        if (err) {
+          reject(new Error(err.message));
+          return;
+        }
+        resolve();
+      });
+    });
+  };
 
   /**
    * 以 GET 方式，访问开放式API

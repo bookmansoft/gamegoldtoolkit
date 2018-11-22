@@ -17,7 +17,7 @@ remote.setFetch(require('node-fetch')) //设置node环境下兼容的fetch函数
     }
 );
 
-describe('模拟测试', () => {
+describe.only('模拟测试', () => {
     it('RESTFUL/GET 查询区块信息', async () => {
         let ret = await remote.get('block/4d80d69a80967c6609fa2606e07fb7e3ad51f8338ce2f31651cb0acdd9250000');
         console.log(ret);
@@ -38,7 +38,24 @@ describe('模拟测试', () => {
         let ret = await remote.execute('balance.all', []);
         //注意：使用WS时返回值包含一个嵌套格式，和WEB模式不同
         console.log('命令序列号', ret.id);
-        console.log('返回值', ret.result);
+        console.log('返回值', ret.result); //对应WEB模式的返回值
         console.log('错误值', ret.error);
+    });
+
+    it.only('WS模式监听消息', async () => {
+        await remote.setmode(remote.CommMode.ws).login();
+        await remote.join();
+
+        //通过监听收到消息
+        remote.watch(msg => {
+            console.log(msg);
+        }, 'client.tx');
+
+        //获得一个新的地址
+        let ret = await remote.execute('address.create', []);
+        let newaddr = ret.result.address;
+
+        //向该地址转账
+        await remote.execute('tx.send', [newaddr, 10000]);
     });
 });
