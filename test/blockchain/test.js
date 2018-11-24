@@ -49,7 +49,7 @@ describe.only('模拟测试', () => {
         //通过监听收到消息
         remote.watch(msg => {
             console.log(msg);
-        }, 'wallet tx');
+        }, 'tx.client');
 
         //获得一个新的地址
         let ret = await remote.execute('address.create', []);
