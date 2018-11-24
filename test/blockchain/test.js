@@ -49,13 +49,13 @@ describe.only('模拟测试', () => {
         //通过监听收到消息
         remote.watch(msg => {
             console.log(msg);
-        }, 'client.tx');
+        }, 'wallet tx');
 
         //获得一个新的地址
         let ret = await remote.execute('address.create', []);
         let newaddr = ret.result.address;
 
         //向该地址转账
-        await remote.execute('tx.send', [newaddr, 10000]);
+        await remote.execute('tx.send', [newaddr, 20000]);
     });
 });
