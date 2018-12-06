@@ -17,7 +17,7 @@ remote.setFetch(require('node-fetch')) //设置node环境下兼容的fetch函数
     }
 );
 
-describe.only('模拟测试', () => {
+describe('模拟测试', () => {
     it('RESTFUL/GET 查询区块信息', async () => {
         let ret = await remote.get('block/4d80d69a80967c6609fa2606e07fb7e3ad51f8338ce2f31651cb0acdd9250000');
         console.log(ret);
@@ -28,7 +28,7 @@ describe.only('模拟测试', () => {
         console.log(ret);
     });
 
-    it('WEB模式查询余额', async () => {
+    it.only('WEB模式查询余额', async () => {
         let ret = await remote.execute('balance.all', []);
         console.log(ret);
     });
@@ -42,7 +42,7 @@ describe.only('模拟测试', () => {
         console.log('错误值', ret.error);
     });
 
-    it.only('WS模式监听消息', async () => {
+    it('WS模式监听消息', async () => {
         await remote.setmode(remote.CommMode.ws).login();
         await remote.join();
 

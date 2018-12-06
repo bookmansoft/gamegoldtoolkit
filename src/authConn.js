@@ -10,36 +10,31 @@ const {io, signHMAC, Base64, createHmac, ReturnCode, NotifyType, CommMode, now} 
  * 终端配置管理
  */
 
-let defaultNetworkType = 'testnet';
-
-const main = {
-  type:   'main',
-  ip:     '127.0.0.1',          //远程服务器地址
-  head:   'http',               //远程服务器通讯协议，分为 http 和 https
-  id:     'primary',            //默认访问的钱包编号
-  apiKey: 'bookmansoft',        //远程服务器基本校验密码
-  cid:    'xxxxxxxx-game-gold-root-xxxxxxxxxxxx', //授权节点编号，用于访问远程钱包时的认证
-  token:  '03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08', //授权节点令牌固定量，用于访问远程钱包时的认证
-};
-
-const testnet = {
-  type:   'testnet',
-  ip:     '127.0.0.1',          //远程服务器地址
-  head:   'http',               //远程服务器通讯协议，分为 http 和 https
-  id:     'primary',            //默认访问的钱包编号
-  apiKey: 'bookmansoft',        //远程服务器基本校验密码
-  cid:    'xxxxxxxx-game-gold-root-xxxxxxxxxxxx', //授权节点编号，用于访问远程钱包时的认证
-  token:  '03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08', //授权节点令牌固定量，用于访问远程钱包时的认证
-};
-
-const AuthConnConfig = {
-  'main': main,
-  'testnet': testnet,
-}
-
 class AuthConn
 {
   constructor() {
+    this.defaultNetworkType = 'testnet';
+    this.AuthConnConfig = {
+      'main': {
+        type:   'main',
+        ip:     '127.0.0.1',          //远程服务器地址
+        head:   'http',               //远程服务器通讯协议，分为 http 和 https
+        id:     'primary',            //默认访问的钱包编号
+        apiKey: 'bookmansoft',        //远程服务器基本校验密码
+        cid:    'xxxxxxxx-game-gold-root-xxxxxxxxxxxx', //授权节点编号，用于访问远程钱包时的认证
+        token:  '03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08', //授权节点令牌固定量，用于访问远程钱包时的认证
+      },
+      'testnet': {
+        type:   'testnet',
+        ip:     '127.0.0.1',          //远程服务器地址
+        head:   'http',               //远程服务器通讯协议，分为 http 和 https
+        id:     'primary',            //默认访问的钱包编号
+        apiKey: 'bookmansoft',        //远程服务器基本校验密码
+        cid:    'xxxxxxxx-game-gold-root-xxxxxxxxxxxx', //授权节点编号，用于访问远程钱包时的认证
+        token:  '03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08', //授权节点令牌固定量，用于访问远程钱包时的认证
+      },
+    }
+    
     this.notifyHandles = {'0': msg => {
       console.log('receive unknown server notify: ', msg);
     }};
@@ -426,8 +421,8 @@ class AuthConn
    * @param {*} networkType 
    */
   getTerminalConfig(networkType) {
-    networkType = networkType || defaultNetworkType;
-    return !!AuthConnConfig[networkType] ? AuthConnConfig[networkType] : {};
+    networkType = networkType || this.defaultNetworkType;
+    return !!this.AuthConnConfig[networkType] ? this.AuthConnConfig[networkType] : {};
   }
 
   /**
@@ -437,9 +432,9 @@ class AuthConn
    */
   setup(info) {
     //设为默认网络类型
-    defaultNetworkType = info.type;
+    this.defaultNetworkType = info.type;
     //设置默认网络类型的参数
-    AuthConnConfig[info.type] = info;
+    this.AuthConnConfig[info.type] = info;
 
     return this;
   }
