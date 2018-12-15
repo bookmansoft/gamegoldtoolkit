@@ -431,10 +431,15 @@ class AuthConn
    * @param {*} info 
    */
   setup(info) {
-    //设为默认网络类型
-    this.defaultNetworkType = info.type;
-    //设置默认网络类型的参数
-    this.AuthConnConfig[info.type] = info;
+    if(!!info && info.type) {
+      //设置默认网络类型
+      this.defaultNetworkType = info.type;
+
+      for(let k of Object.keys(info)) {
+        //设置默认网络类型的参数 - 逐项设置
+        this.AuthConnConfig[info.type][k] = info[k];
+      }
+    }
 
     return this;
   }
