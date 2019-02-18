@@ -142,13 +142,19 @@ class AuthConn
     };
 
     try {
+      let ret = null;
       if(this.fetch) {
-        let ret = await this.fetch(url, newOptions);
-        return await ret.json();
+        ret = await this.fetch(url, newOptions);
       }
       else {
-        let ret = await fetch(url, newOptions);
-        return await ret.json();
+        ret = await fetch(url, newOptions);
+      }
+      let json = await ret.json();
+
+      if(!conf.structured) {
+        return json.result; //脱去外围数据结构
+      } else {
+        return json;        //保留外围数据结构
       }
     }
     catch(e) {
@@ -174,13 +180,19 @@ class AuthConn
     };
 
     try {
+      let ret = null;
       if(this.fetch) {
-        let ret = await this.fetch(url, newOptions);
-        return await ret.json();
+        ret = await this.fetch(url, newOptions);
       }
       else {
-        let ret = await fetch(url, newOptions);
-        return await ret.json();
+        ret = await fetch(url, newOptions);
+      }
+      let json = await ret.json();
+
+      if(!conf.structured) {
+        return json.result; //脱去外围数据结构
+      } else {
+        return json;        //保留外围数据结构
       }
     }
     catch(e) {
@@ -196,6 +208,7 @@ class AuthConn
   async execute(method, params) {
     params = params || [];
 
+    let conf = this.getTerminalConfig();
     switch(this.mode) {
       case CommMode.ws: {
         if(!this.socket) {
@@ -207,7 +220,11 @@ class AuthConn
             if(!!err) {
               reject(err);
             }
-            resolve(msg);
+            if(!conf.structured) {
+              resolve(msg.result);
+            } else {
+              resolve(msg);
+            }
           });
         });
       }
@@ -221,13 +238,18 @@ class AuthConn
               method: method,
               params: params,
             },
-          }), this.getTerminalConfig()
+          }), 
+          this.getTerminalConfig(),
         );
     
         if(!!rt.error || !rt.result) {
           console.error(`${method}数据请求错误`);
         }    
-        return rt.result;
+        if(!conf.structured) {
+          return rt.result;
+        } else {
+          return rt;
+        }
       }
     }
   }
