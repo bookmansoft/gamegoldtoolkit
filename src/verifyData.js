@@ -1,7 +1,7 @@
 /**
  * 定义了一个独立数据校验函数，用于游戏服务端在登录、支付时的独立验证
  */
-
+const assert = require('assert');
 const crypto = require('crypto')
 const elliptic = require('elliptic');
 const secp256k1 = elliptic.ec('secp256k1');
@@ -42,6 +42,13 @@ function sha256(data) {
 function hash256(data) {
     return sha256(sha256(data));
 };
+
+const networks = {prefix:[
+  {type: 'main' , bech32: 'bc' }, 
+  {type: 'testnet', bech32 : 'tb' }, 
+  {type: 'regtest', bech32 : 'rb' }, 
+  {type: 'simnet', bech32 : 'sc'}
+]};
 
 /**
  * 验证持令牌者，拥有对令牌中地址的支配权
@@ -86,6 +93,53 @@ function verifyData(packet) {
     }
 
     return false;
+}
+
+/**
+ * 验证持地址是否是合法的--仅验证bech32
+ * @param {String} addr 地址
+ * @param {String} networkType 地址网络类型 
+ */
+function verifyAddress(addr,networkType) {
+  try {
+    //验证传入的地址类型    
+    assert(typeof(addr) === 'string');    
+    assert(addr.length > 0);
+    assert(addr.length <= 100);
+    // 默认为testnet
+    if(!networkType){
+      networkType = "testnet";
+    }
+    // 使用bech32解码
+    const verifiedAddr = decode(addr);    
+    // 验证地址前缀
+    let verifiddPrefix = false;
+    for (const prefix of networks.prefix) {     
+      if (prefix.type === networkType && prefix.bech32 === verifiedAddr.hrp){
+        verifiddPrefix = true;
+        break;
+      }
+    }
+    if(!verifiddPrefix)
+      throw new Error(`Network not found for ${verifiedAddr.hrp}.`);
+  
+    //验证地址构成
+    let hash = verifiedAddr.hash;
+    if (typeof(verifiedAddr.hash) === 'string'){
+      hash = Buffer.from(verifiedAddr.hash, 'hex'); 
+    }
+    assert(Buffer.isBuffer(hash));
+    // version === 0 && type === Address.types.WITNESS
+    assert(hash.length === 20 || hash.length === 32,
+      'Witness program hash is the wrong size.');       
+    assert(hash.length >= 2 && hash.length <= 40, 'Hash is the wrong size.');
+    
+    return true;
+  } catch (e) {
+      console.info(e)
+  }
+
+  return false;
 }
 
 const POOL65 = Buffer.allocUnsafe(65);
@@ -374,4 +428,5 @@ function AddrResult(hrp, version, hash) {
  * Expose
  */
 
-module.exports = verifyData;
+module.exports.verifyData = verifyData;
+module.exports.verifyAddress = verifyAddress;
