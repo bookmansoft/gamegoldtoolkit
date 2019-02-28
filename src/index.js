@@ -16,7 +16,8 @@ Array.prototype.randObj = function(){
 const toolkit = exports;
 
 toolkit.conn = require('./authConn');
-toolkit.verifyData = require('./verifyData');
+toolkit.verifyData = require('./verifyData').verifyData;
+toolkit.verifyAddress = require('./verifyData').verifyAddress;
 toolkit.gameconn = require('./gameConn');
 
 global.toolkit = toolkit;
