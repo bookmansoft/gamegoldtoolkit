@@ -242,8 +242,8 @@ class AuthConn
           this.getTerminalConfig(),
         );
     
-        if(!!rt.error || !rt.result) {
-          console.error(`${method}数据请求错误`);
+        if(!!rt.error) {
+          console.error(`${method}数据请求错误: ${rt.error}`);
         }    
         if(!conf.structured) {
           return rt.result;
