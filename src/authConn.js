@@ -242,6 +242,11 @@ class AuthConn
           this.getTerminalConfig(),
         );
     
+        if(!rt) {
+          console.error(`${method}通讯错误`);
+          return null;
+        }
+
         if(!!rt.error) {
           console.error(`${method}数据请求错误: ${rt.error}`);
         }    
@@ -315,10 +320,11 @@ class AuthConn
         }), 
         this.getTerminalConfig()
       );
-      if(!!ret.error || !ret.result) {
+      if(!ret || !!ret.error) {
         console.error(`HMAC请求错误`);
+      } else {
+        this.setRandom(ret.result); //获取令牌随机量
       }
-      this.setRandom(ret.result); //获取令牌随机量
     }
   }
 
