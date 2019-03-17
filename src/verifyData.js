@@ -134,12 +134,19 @@ function verifyAddress(addr,networkType) {
       'Witness program hash is the wrong size.');       
     assert(hash.length >= 2 && hash.length <= 40, 'Hash is the wrong size.');
     
-    return true;
+    return {
+      result: true,
+    }
   } catch (e) {
-      console.info(e)
+    return {
+      result: false,
+      error: {
+        type: e.type || 'Error',
+        message: e.message,
+        code: e.code
+      }
+    }
   }
-
-  return false;
 }
 
 const POOL65 = Buffer.allocUnsafe(65);

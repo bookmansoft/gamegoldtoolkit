@@ -1,5 +1,8 @@
 const createHmac = require('create-hmac/browser');
 const io = require('socket.io-client');
+const assert = require('assert');
+const Buffer = require('safe-buffer').Buffer
+const aes = require('./aes');
 
 /**
  * 客户端请求返回值，统一定义所有的错误码，每100个为一个大类
@@ -268,6 +271,73 @@ function clone(obj) {
     throw new Error("Unable to copy obj! Its type isn't supported.");
 }
 
+/**
+* 加密方法
+* @param key    加密key
+* @param iv     向量
+* @param data   需要加密的数据
+* @returns string
+*/
+function encrypt(key, iv, data) {
+    if(!Buffer.isBuffer(key)) {
+        assert(typeof key === 'string');
+        key = Buffer.from(key, 'binary')
+    }
+
+    if(!Buffer.isBuffer(iv)) {
+        assert(typeof iv === 'string');
+        iv = Buffer.from(iv, 'binary')
+    }
+
+    if(!Buffer.isBuffer(data)) {
+        assert(typeof data === 'string');
+        data = Buffer.from(data, 'binary')
+    }
+
+    var crypted = aes.encipher(data, key, iv);
+
+    crypted = Buffer.from(crypted, 'binary');
+    
+    let ret = Buffer.alloc(crypted.length*2);
+    for(let i = 0; i < crypted.length; i++){
+        ret[2*i] = (crypted[i] >> 4) + 97;
+        ret[2*i+1] = (crypted[i] & 0x0F) + 97;
+    }
+    return ret.toString('binary');
+};
+
+/**
+* 解密方法
+* @param key    解密的key
+* @param iv     向量
+* @param data   密文
+* @returns string
+*/
+function decrypt(key, iv, data) {
+    if(!Buffer.isBuffer(key)) {
+        assert(typeof key === 'string');
+        key = Buffer.from(key, 'binary')
+    }
+
+    if(!Buffer.isBuffer(iv)) {
+        assert(typeof iv === 'string');
+        iv = Buffer.from(iv, 'binary')
+    }
+
+    if(!Buffer.isBuffer(data)) {
+        assert(typeof data === 'string');
+        data = Buffer.from(data, 'binary')
+    }
+
+    let ret = Buffer.alloc(data.length/2);
+    for(let i = 0; i < ret.length; i++){
+        ret[i] = ((data[i*2]-97)<<4) | (data[i*2+1]-97);
+    }
+
+    var decoded = aes.decipher(ret, key, iv);
+    return decoded.toString('binary');
+};
+
 exports.now = now;
 exports.ms = ms;
 exports.io = io;
@@ -280,3 +350,5 @@ exports.NotifyType = NotifyType;
 exports.createHmac = createHmac;
 exports.extendObj = extendObj;
 exports.clone = clone;
+exports.encrypt = encrypt;
+exports.decrypt = decrypt;

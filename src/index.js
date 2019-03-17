@@ -14,10 +14,20 @@ Array.prototype.randObj = function(){
 }
 
 const toolkit = exports;
+const {encrypt, decrypt} = require('./util');
 
+//游戏金链连接器
 toolkit.conn = require('./authConn');
+
+//游戏云连接器
+toolkit.gameconn = require('./gameConn');
+
+//校验函数
 toolkit.verifyData = require('./verifyData').verifyData;
 toolkit.verifyAddress = require('./verifyData').verifyAddress;
-toolkit.gameconn = require('./gameConn');
+
+//AES加解密函数
+toolkit.encrypt = encrypt;
+toolkit.decrypt = decrypt;
 
 global.toolkit = toolkit;

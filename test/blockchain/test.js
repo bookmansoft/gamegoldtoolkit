@@ -28,7 +28,7 @@ describe('模拟测试', () => {
         console.log(ret);
     });
 
-    it.only('WEB模式查询余额', async () => {
+    it('WEB模式查询余额', async () => {
         let ret = await remote.execute('balance.all', []);
         console.log(ret);
     });
