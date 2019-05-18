@@ -248,7 +248,7 @@ class AuthConn
         }
 
         if(!!rt.error) {
-          console.error(`${method}数据请求错误: ${rt.error}`);
+          console.error(`${method}: ${rt.error.type} / ${rt.error.message}`);
         }    
         if(!conf.structured) {
           return rt.result;
