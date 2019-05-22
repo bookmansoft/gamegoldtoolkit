@@ -1,6 +1,6 @@
 {
   "name": "gamegoldtoolkit",
-  "version": "1.6.3",
+  "version": "1.6.5",
   "description": "Gamegold Toolkit",
   "main": "index.js",
   "scripts": {
@@ -25,11 +25,11 @@
   },
   "homepage": "https://github.com/bookmansoft/gamegoldtoolkit#readme",
   "dependencies": {
-    "create-hmac": "^1.1.7",
-    "crypto": "^1.0.1",
-    "elliptic": "^6.4.1",
-    "node-fetch": "^2.2.1",
-    "socket.io-client": "^2.1.1"
+    "create-hmac": "1.1.7",
+    "crypto": "1.0.1",
+    "elliptic": "6.4.1",
+    "node-fetch": "2.2.1",
+    "socket.io-client": "2.2.0"
   },
   "devDependencies": {
     "babel": "^6.23.0",
