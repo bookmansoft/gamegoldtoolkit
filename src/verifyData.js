@@ -51,6 +51,46 @@ const networks = {prefix:[
 ]};
 
 /**
+ * 生成私钥/公钥对
+ * @param {String} priv 
+ * @returns {Object} {private, public}
+ */
+function generateKey(priv) {
+  let key = null;
+  if(!priv){
+    key = secp256k1.genKeyPair();
+  } else {
+    key = secp256k1.keyPair({ priv: priv });
+  }
+
+  return {
+    private: key.getPrivate('hex'),
+    public: key.getPublic(false, 'hex'),
+  }
+}
+
+/**
+ * Sign a message.
+ * @param {Object} msg
+ * @returns {Object} Signature in DER format.
+ */
+
+function signObj(msg, pri) {
+  return secp256k1.sign(Buffer.from(stringify(msg)), Buffer.from(pri, 'hex'));
+};
+
+/**
+ * Verify a message.
+ * @param {Object} msg
+ * @param {Object} sig
+ * @returns {Boolean}
+ */
+
+function verifyObj(msg, sig, pub) {
+  return secp256k1.verify(Buffer.from(stringify(msg)), sig, Buffer.from(pub, 'hex'));
+};
+
+/**
  * 验证持令牌者，拥有对令牌中地址的支配权
  * @param {Object} packet 
  *      {
@@ -437,3 +477,6 @@ function AddrResult(hrp, version, hash) {
 
 module.exports.verifyData = verifyData;
 module.exports.verifyAddress = verifyAddress;
+module.exports.generateKey = generateKey;
+module.exports.signObj = signObj;
+module.exports.verifyObj = verifyObj;

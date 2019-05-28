@@ -9,6 +9,13 @@
 		//获取授权式连接器
 		let remote = new toolkit.conn();
 
+		//测试签名算法
+		let key = toolkit.generateKey();
+		let obj = {msg:'hello world'};
+		let sg = toolkit.signObj(obj, key.private);
+		let ver = toolkit.verifyObj(obj, sg, key.public);
+		console.log(ver);
+
 		//设置连接参数
 		remote.setup({
 			type:   'testnet',            //对等网络类型，分为 testnet 和 main

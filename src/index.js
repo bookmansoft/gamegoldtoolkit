@@ -23,8 +23,12 @@ toolkit.conn = require('./authConn');
 toolkit.gameconn = require('./gameConn');
 
 //校验函数
-toolkit.verifyData = require('./verifyData').verifyData;
-toolkit.verifyAddress = require('./verifyData').verifyAddress;
+let {verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./verifyData');
+toolkit.generateKey = generateKey;
+toolkit.signObj = signObj;
+toolkit.verifyObj = verifyObj;
+toolkit.verifyData = verifyData;
+toolkit.verifyAddress = verifyAddress;
 
 //AES加解密函数
 toolkit.encrypt = encrypt;

@@ -28,4 +28,19 @@ describe('常用加解密、验证算法', function(){
         //断言两者相等
         assert(result === data);
     })
+
+    it.only('sign/verify', async () => {
+        //生成密钥对
+        let key = toolkit.generateKey();
+        //使用私钥重新生成密钥对，验证私钥还原密钥对的能力
+        key = toolkit.generateKey(key.private);
+        //构造待签名对象
+        let obj = {msg:'hello world'};
+        //使用私钥生成对象签名
+        let sg = JSON.stringify(toolkit.signObj(obj, key.private));
+        //使用公钥验证对象签名的有效性
+        let ver = toolkit.verifyObj(obj, JSON.parse(sg), key.public);
+
+        assert(ver);
+    });
 });
