@@ -480,3 +480,4 @@ module.exports.verifyAddress = verifyAddress;
 module.exports.generateKey = generateKey;
 module.exports.signObj = signObj;
 module.exports.verifyObj = verifyObj;
+module.exports.hash256 = hash256;

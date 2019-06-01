@@ -1,6 +1,6 @@
 {
   "name": "gamegoldtoolkit",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "description": "Gamegold Toolkit",
   "main": "index.js",
   "scripts": {

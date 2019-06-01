@@ -5,6 +5,7 @@
  */
 
 const {io, signHMAC, Base64, createHmac, ReturnCode, NotifyType, CommMode, now} = require('./util')
+const {hash256} = require('./verifyData')
 
 /**
  * 终端配置管理
@@ -257,6 +258,18 @@ class AuthConn
         }
       }
     }
+  }
+
+  /**
+   * 计算并返回用于对称加密的密钥
+   */
+  getAes() {
+    let buf = hash256(Buffer.from(this.$params.random));
+    let aeskey = buf.toString('base64').slice(0, 32);
+    buf = hash256(buf);
+    let aesiv = buf.toString('base64').slice(0, 16);
+
+    return {aeskey, aesiv};
   }
 
   getRandom() {
