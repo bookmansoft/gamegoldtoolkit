@@ -298,7 +298,7 @@ class AuthConn
    * 计算并返回用于对称加密的密钥
    */
   getAes() {
-    let buf = hash256(Buffer.from(this.$params.random));
+    let buf = hash256(Buffer.from(this.getTerminalConfig().token));
     let aeskey = buf.toString('base64').slice(0, 32);
     buf = hash256(buf);
     let aesiv = buf.toString('base64').slice(0, 16);
