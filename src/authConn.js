@@ -5,7 +5,7 @@
  */
 
 const {io, signHMAC, Base64, createHmac, ReturnCode, NotifyType, CommMode, now} = require('./util')
-const {hash256} = require('./verifyData')
+const {generateKey, signObj, verifyObj, hash256} = require('./verifyData')
 
 /**
  * 终端配置管理
@@ -23,7 +23,7 @@ class AuthConn
         id:     'primary',            //默认访问的钱包编号
         apiKey: 'bookmansoft',        //远程服务器基本校验密码
         cid:    'xxxxxxxx-game-gold-root-xxxxxxxxxxxx', //授权节点编号，用于访问远程钱包时的认证
-        token:  '03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08', //授权节点令牌固定量，用于访问远程钱包时的认证
+        token:  '02df40e6030570576bf654d690994089f26cabdbd5d6396cbfcc84144a1ba42bdb', //授权节点令牌固定量，用于访问远程钱包时的认证
       },
       'testnet': {
         type:   'testnet',
@@ -60,6 +60,9 @@ class AuthConn
   async retoken() {
     let params = this.getTerminalConfig();
     let msg = await this.setmode(CommMode.ws).execute('token.random', [params.cid]);
+    if(!!params.structured) {
+      msg = msg.result;
+    }
     const hmac = this.createHmac('sha256', msg);
     params.calc = hmac.update(params.token).digest('hex'); //计算并附加访问令牌
 
@@ -89,10 +92,20 @@ class AuthConn
    */
 
   async join() {
+    let conf = this.getTerminalConfig();
+
+    let method = 'wallet.join';
     let params = await this.retoken();
+    params = [params.id, params.cid, params.calc];
+    let sig = signObj({
+      method: method,
+      params: params,
+      cid: conf.cid,
+      wid: conf.id,
+    }, hash256(Buffer.from(conf.token)));
 
     return new Promise((resolve, reject) => {
-      this.socket.emit('request', 'wallet.join', params.id, params.cid, params.calc, (err) => {
+      this.socket.emit('request', method, params, sig, (err) => {
         if (!!err) {
           console.log(err);
           reject(new Error(err.message));
@@ -108,10 +121,19 @@ class AuthConn
    */
 
   async leave() {
-    let params = this.getTerminalConfig();
+    let conf = this.getTerminalConfig();
+    
+    let method = 'wallet.leave';
+    let params = [conf.id];
+    let sig = signObj({
+      method: method,
+      params: params,
+      cid: conf.cid,
+      wid: conf.id,
+    }, hash256(Buffer.from(conf.token)));
 
     return new Promise((resolve, reject) => {
-      this.socket.emit('request', 'wallet.leave', params.id, (err) => {
+      this.socket.emit('request', method, params, sig, (err) => {
         if (err) {
           reject(new Error(err.message));
           return;
@@ -216,8 +238,17 @@ class AuthConn
           this.createSocket();
         }
 
+        let key = generateKey(hash256(Buffer.from(conf.token)));
+        let obj = {
+          method: method,
+          params: params,
+          cid: conf.cid,
+          wid: conf.id,
+        };
+        let sig = signObj(obj, key.private);
+
         return new Promise((resolve, reject) => {
-          this.socket.emit('request', method, ...params, (err, msg) => {
+          this.socket.emit('request', method, params, sig, (err, msg) => {
             if(!!err) {
               reject(err);
             }
@@ -232,14 +263,17 @@ class AuthConn
       
       default: {
         await this.queryToken();
+
+        let opt = this.fillOptions({
+          method: 'POST',
+          body: {
+            method: method,
+            params: params,
+          },
+        });
+
         let rt = await this.request(
-          this.fillOptions({
-            method: 'POST',
-            body: {
-              method: method,
-              params: params,
-            },
-          }), 
+          opt, 
           this.getTerminalConfig(),
         );
     
@@ -308,6 +342,15 @@ class AuthConn
     }
     options.body.wid = this.getTerminalConfig().id;   //附加默认钱包编号
     options.body.cid = this.getTerminalConfig().cid;  //附加客户端编号
+
+    //对上行数据添加签名, 使用原始 token 作为私钥源
+    options.body.sig = signObj({
+      method: options.body.method,
+      params: options.body.params,
+      cid: options.body.cid,
+      wid: options.body.wid,
+    }, hash256(Buffer.from(_token)));
+
     options.body = JSON.stringify(options.body);
 
     let auth = {

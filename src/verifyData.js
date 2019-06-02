@@ -14,13 +14,26 @@ const secp256k1 = elliptic.ec('secp256k1');
  * @param {Array?} exclude   包含所有待排除的属性名的数组
  */
 function stringify(data, exclude) {
+  if(Array.isArray(data)) {
+    return data.reduce((sofar,cur)=>{
+      sofar += stringify(cur);
+      return sofar;
+    }, '');
+  } else if(typeof data == 'number' || typeof data == 'boolean') {
+    return data.toString();
+  } else if(typeof data == 'object') {
     let base = '';
     Object.keys(data).sort().map(key=>{
-        if(!exclude || !exclude[key]) {
-            base += key + data[key];
-        }
+      if(!exclude || !exclude.includes[key]) {
+          base += key + data[key];
+      }
     });
     return base;
+  } else if(Buffer.isBuffer(data)) {
+    return data.toString('base64');
+  }
+  
+  return data;
 }
   
 function hash(alg, data) {
@@ -70,24 +83,30 @@ function generateKey(priv) {
 }
 
 /**
- * Sign a message.
- * @param {Object} msg
- * @returns {Object} Signature in DER format.
+ * 针对输入消息，用私钥生成并返回一个签名
+ * @param {String}  msg   待签名的消息，字符串格式
+ * @param {String}  pri   签名私钥，HEX字符串格式
+ * @returns {String} 签名字符串
  */
 
 function signObj(msg, pri) {
-  return secp256k1.sign(Buffer.from(stringify(msg)), Buffer.from(pri, 'hex'));
+  let _msg = Buffer.from(stringify(msg), 'hex');
+  let sig = secp256k1.sign(_msg, Buffer.from(pri, 'hex'));
+  return JSON.stringify(sig);
 };
 
 /**
- * Verify a message.
- * @param {Object} msg
- * @param {Object} sig
- * @returns {Boolean}
+ * 针对输入消息和签名字段，用公钥验证签名
+ * @param {String}  msg 带签名的消息，字符串格式
+ * @param {String}  sig 签名字段，JSON字符串格式
+ * @param {String}  pub 验证签名的公钥，HEX字符串格式
+ * @returns {Boolean} 验证是否通过
  */
 
 function verifyObj(msg, sig, pub) {
-  return secp256k1.verify(Buffer.from(stringify(msg)), sig, Buffer.from(pub, 'hex'));
+  let _msg = Buffer.from(stringify(msg), 'hex');
+  sig = JSON.parse(sig);
+  return secp256k1.verify(_msg, sig, Buffer.from(pub, 'hex'));
 };
 
 /**
