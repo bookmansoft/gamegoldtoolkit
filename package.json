@@ -1,7 +1,7 @@
 {
-  "name": "gamegoldtoolkit",
+  "name": "gamerpc",
   "version": "1.6.10",
-  "description": "Gamegold Toolkit",
+  "description": "Game RPC Toolkit",
   "main": "index.js",
   "scripts": {
     "test": "mocha",
