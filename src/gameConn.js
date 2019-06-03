@@ -46,12 +46,26 @@ class Remote {
         this.close();
 
         this.socket = io(`${this.config.UrlHead}://${ip}:${port}`, {'force new connection': true})
-        .on('notify', ret => {
+        .on('notify', ret => {//监听推送消息
             if(this.notifyHandles[ret.type]) {
                 this.notifyHandles[ret.type](ret.info);
             }
             else if(!!this.notifyHandles['0']){
                 this.notifyHandles['0'](ret.info);
+            }
+        })
+        .on('disconnect', ()=>{//断线重连
+            this.socket.needConnect = true;
+            setTimeout(()=>{
+                if(!!this.socket.needConnect) {
+                    this.socket.needConnect = false;
+                    this.socket.connect();
+                }
+            }, 1500);
+        })
+        .on('connect', () => { //连接消息
+            if(this.notifyHandles['onConnect']) {
+                this.notifyHandles['onConnect']();
             }
         });
     }

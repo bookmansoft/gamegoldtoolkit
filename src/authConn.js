@@ -36,11 +36,10 @@ class AuthConn
       },
     }
     
-    this.notifyHandles = {'0': msg => {
-      console.log('receive unknown server notify: ', msg);
-    }};
+    this.notifyHandles = {
+      '0': msg => { console.log('receive unknown server notify: ', msg);}
+    };
     this.mode = CommMode.post;
-    this.io = io;
     this.socket = null;
     this.$params = {
       random: null,
@@ -402,21 +401,36 @@ class AuthConn
       uri = `${_head}://${conf.ip}:17332/`;
     }
   
-    this.socket = this.io(uri, {'force new connection': true}).on('notify', ret=>{
+    this.socket = io(uri, {'force new connection': true})
+    .on('notify', ret => {//监听推送消息
       if(!!ret.type && this.notifyHandles[ret.type]){
           this.notifyHandles[ret.type](ret.info);
       }
       else if(!!this.notifyHandles['0']){
           this.notifyHandles['0'](ret.info);
       }
-  })
+    })
+    .on('disconnect', ()=>{//断线重连
+      this.socket.needConnect = true;
+      setTimeout(()=>{
+          if(!!this.socket.needConnect) {
+              this.socket.needConnect = false;
+              this.socket.connect();
+          }
+      }, 1500);
+    })
+    .on('connect', () => {
+      if(this.notifyHandles['onConnect']) {
+        this.notifyHandles['onConnect']();
+      }
+    });
   }
 
   /**
    * 关闭长连接
    */
   close() {
-    if(this.socket){
+    if(!!this.socket) {
       this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
@@ -475,7 +489,7 @@ class AuthConn
 
 
   /**
-   * 设置服务端推送报文的监控句柄，支持链式调用
+   * 设置服务端推送报文的监控句柄，支持链式调用. 注意监控短线重连等消息，也是使用的同样的语法
    * @param cb            回调
    * @param etype         事件类型
    * @returns {Remote}
@@ -491,6 +505,7 @@ class AuthConn
 
   /**
    * 设置服务端特定报文Notify的监控句柄，支持链式调用
+   * 可以主动注册 onConnect 句柄，在短线重连时触发
    * @param cb            回调
    * @param etype         事件子类型
    * @returns {Remote}
