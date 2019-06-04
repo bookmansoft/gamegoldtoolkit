@@ -487,9 +487,8 @@ class AuthConn
     }
   }
 
-
   /**
-   * 设置服务端推送报文的监控句柄，支持链式调用. 注意监控短线重连等消息，也是使用的同样的语法
+   * 设置服务端推送报文的监控句柄，支持链式调用.
    * @param cb            回调
    * @param etype         事件类型
    * @returns {Remote}
@@ -505,7 +504,7 @@ class AuthConn
 
   /**
    * 设置服务端特定报文Notify的监控句柄，支持链式调用
-   * 可以主动注册 onConnect 句柄，在短线重连时触发
+   * 可以主动注册 onConnect 句柄，在断线重连时触发
    * @param cb            回调
    * @param etype         事件子类型
    * @returns {Remote}
