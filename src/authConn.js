@@ -36,10 +36,7 @@ class AuthConn
       },
     }
     
-    this.notifyHandles = {
-      '0': msg => { console.log('receive unknown server notify: ', msg);}
-    };
-    this.socketEvents = [];
+    this.socketEvents = {};
     this.mode = CommMode.post;
     this.socket = null;
     this.$params = {
@@ -50,10 +47,14 @@ class AuthConn
 
   /**
    * 设置通讯模式
-   * @param {*} mode 
+   * @param {*} mode  通讯模式
+   * @param {*} cb    连接建立时的回调
    */
-  setmode(mode) {
+  setmode(mode, cb) {
     this.mode = mode;
+    if(cb) {
+      this.socketEvents['connect'] = cb;
+    }
     return this;
   }
 
@@ -407,14 +408,6 @@ class AuthConn
     }
   
     this.socket = io(uri, {'force new connection': true})
-    .on('notify', ret => {//监听推送消息
-      if(!!ret.type && this.notifyHandles[ret.type]){
-          this.notifyHandles[ret.type](ret.info);
-      }
-      else if(!!this.notifyHandles['0']){
-          this.notifyHandles['0'](ret.info);
-      }
-    })
     .on('disconnect', ()=>{//断线重连
       this.socket.needConnect = true;
       setTimeout(()=>{
@@ -424,15 +417,11 @@ class AuthConn
           }
       }, 1500);
     })
-    .on('connect', () => {
-      if(this.notifyHandles['onConnect']) {
-        this.notifyHandles['onConnect']();
-      }
+
+    Object.keys(this.socketEvents).map(key=>{
+      this.socket.on(key, this.socketEvents[key]);
     });
 
-    for(let item of this.socketEvents) {
-      this.socket.on(item[0], item[1]);
-    }
     await (async function(time){return new Promise(resolve =>{setTimeout(resolve, time);});})(500);
   }
 
@@ -508,20 +497,8 @@ class AuthConn
     if(this.socket) {
       this.socket.on(cb, etype);
     } else {
-      this.socketEvents.push([etype, cb]);
+      this.socketEvents[etype] = cb;
     }
-    return this;
-  }
-
-  /**
-   * 设置服务端特定报文Notify的监控句柄，支持链式调用
-   * 可以主动注册 onConnect 句柄，在断线重连时触发
-   * @param cb            回调
-   * @param etype         事件子类型
-   * @returns {Remote}
-   */
-  watchNotify(cb, etype = '0'){
-    this.notifyHandles[etype] = cb;
     return this;
   }
 

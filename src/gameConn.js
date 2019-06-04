@@ -30,10 +30,14 @@ class Remote {
 
     /**
      * 修改通讯模式
-     * @param {*} $mode 
+     * @param {*} $mode     通讯模式
+     * @param {*} cb        建立连接时的回调
      */
-    setmode($mode) {
+    setmode($mode, cb) {
         this.rpcMode = $mode;
+        if(cb) {
+            this.notifyHandles['onConnect'] = cb;
+        }
         return this;
     }
 
