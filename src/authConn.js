@@ -39,6 +39,7 @@ class AuthConn
     this.notifyHandles = {
       '0': msg => { console.log('receive unknown server notify: ', msg);}
     };
+    this.socketEvents = [];
     this.mode = CommMode.post;
     this.socket = null;
     this.$params = {
@@ -234,7 +235,7 @@ class AuthConn
     switch(this.mode) {
       case CommMode.ws: {
         if(!this.socket) {
-          this.createSocket();
+          await this.createSocket();
         }
 
         let key = generateKey(hash256(Buffer.from(conf.token)));
@@ -252,7 +253,11 @@ class AuthConn
               reject(err);
             }
             if(!conf.structured) {
-              resolve(msg.result);
+              if(!!msg && !!msg.result) {
+                resolve(msg.result);
+              } else {
+                resolve(null);
+              }
             } else {
               resolve(msg);
             }
@@ -388,7 +393,7 @@ class AuthConn
    * @param {*} ip 
    * @param {*} port 
    */
-  createSocket(){
+  async createSocket(){
     this.close();
 
     let uri = ``;
@@ -424,6 +429,11 @@ class AuthConn
         this.notifyHandles['onConnect']();
       }
     });
+
+    for(let item of this.socketEvents) {
+      this.socket.on(item[0], item[1]);
+    }
+    await (async function(time){return new Promise(resolve =>{setTimeout(resolve, time);});})(500);
   }
 
   /**
@@ -487,18 +497,19 @@ class AuthConn
     }
   }
 
+
   /**
-   * 设置服务端推送报文的监控句柄，支持链式调用.
+   * 设置服务端推送报文的监控句柄，支持链式调用
    * @param cb            回调
    * @param etype         事件类型
    * @returns {Remote}
    */
   watch(cb, etype) {
-    if(!this.socket) {
-      this.createSocket();
+    if(this.socket) {
+      this.socket.on(cb, etype);
+    } else {
+      this.socketEvents.push([etype, cb]);
     }
-
-    this.socket.on(etype, cb);
     return this;
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "gamerpc",
-  "version": "1.6.10",
+  "version": "1.6.11",
   "description": "Game RPC Toolkit",
   "main": "index.js",
   "scripts": {
