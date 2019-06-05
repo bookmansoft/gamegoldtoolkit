@@ -499,7 +499,7 @@ class AuthConn
    */
   watch(cb, etype) {
     if(this.socket) {
-      this.socket.on(cb, etype);
+      this.socket.on(etype, cb);
     } else {
       this.socketEvents[etype] = cb;
     }
