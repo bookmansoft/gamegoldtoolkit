@@ -53,7 +53,11 @@ class AuthConn
   setmode(mode, cb) {
     this.mode = mode;
     if(cb) {
-      this.socketEvents['connect'] = cb;
+      this.socketEvents['connect'] = async () => {
+        await this.login();
+        await this.join();
+        await cb();
+      };
     }
     return this;
   }
