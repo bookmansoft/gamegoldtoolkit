@@ -36,14 +36,13 @@ describe('模拟测试', () => {
     });
 
     it('WS模式查询余额', async () => {
-        await remote.setmode(remote.CommMode.ws).login();
+        await remote.setmode(remote.CommMode.ws);
         let ret = await remote.execute('balance.all', []);
         console.log('返回值', ret);
     });
 
     it('WS模式监听消息', async () => {
-        await remote.setmode(remote.CommMode.ws).login();
-        await remote.join();
+        await remote.setmode(remote.CommMode.ws);
 
         //通过监听收到消息
         remote.watch(msg => {
