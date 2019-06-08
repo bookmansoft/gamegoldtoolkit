@@ -37,4 +37,4 @@ node_modules/
 .env
 
 package-lock.json
-.vscode/launch.json
+.vscode/
