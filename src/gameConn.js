@@ -480,4 +480,8 @@ Remote.CommMode = CommMode;
 Remote.ReturnCode = ReturnCode;
 Remote.NotifyType = NotifyType;
 
+Remote.prototype.CommMode = CommMode;
+Remote.prototype.ReturnCode = ReturnCode;
+Remote.prototype.NotifyType = NotifyType;
+
 module.exports = Remote;

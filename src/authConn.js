@@ -557,6 +557,7 @@ AuthConn.prototype.createHmac = createHmac;
 AuthConn.prototype.Secret = Secret;
 
 AuthConn.CommMode = CommMode;
+AuthConn.NotifyType = NotifyType;
 AuthConn.ReturnCode = ReturnCode;
 AuthConn.createHmac = createHmac;
 AuthConn.Secret = Secret;

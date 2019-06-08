@@ -1,7 +1,7 @@
 /**
  * 取数组随机对象
  */
-Array.prototype.randObj = function(){
+Array.prototype.randObj = function() {
     if(this.length == 0){
         return null;
     }
@@ -14,24 +14,22 @@ Array.prototype.randObj = function(){
 }
 
 const toolkit = exports;
-const {encrypt, decrypt} = require('./utils/util');
 
-//游戏金链连接器
+const assert = require('./utils/assert')
+const {encrypt, decrypt, stringify} = require('./utils/util');
+let {verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./utils/verifyData');
+
+//主网连接器
 toolkit.conn = require('./authConn');
 
 //游戏云连接器
 toolkit.gameconn = require('./gameConn');
 
-//校验函数
-let {verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./utils/verifyData');
-toolkit.generateKey = generateKey;
-toolkit.signObj = signObj;
-toolkit.verifyObj = verifyObj;
-toolkit.verifyData = verifyData;
-toolkit.verifyAddress = verifyAddress;
-
-//AES加解密函数
-toolkit.encrypt = encrypt;
-toolkit.decrypt = decrypt;
+//实用函数列表
+[assert, stringify, encrypt, decrypt, verifyData, generateKey, signObj, verifyObj, verifyAddress].map(func=>{
+    toolkit[func.name] = func;
+    toolkit.conn.prototype[func.name] = func;
+    toolkit.gameconn.prototype[func.name] = func;
+});
 
 global.toolkit = toolkit;

@@ -89,7 +89,7 @@ util.sprintf = function sprintf() {
 * @param data   需要加密的数据
 * @returns string
 */
-util.encrypt = function(key, iv, data) {
+util.encrypt = function encrypt(key, iv, data) {
     if(!Buffer.isBuffer(key)) {
         assert(typeof key === 'string');
         key = Buffer.from(key, 'binary')
@@ -124,7 +124,7 @@ util.encrypt = function(key, iv, data) {
 * @param data   密文
 * @returns string
 */
-util.decrypt = function(key, iv, data) {
+util.decrypt = function decrypt(key, iv, data) {
     if(!Buffer.isBuffer(key)) {
         assert(typeof key === 'string');
         key = Buffer.from(key, 'binary')
@@ -235,7 +235,7 @@ util.isI16 = function isI16(value) {
  * @param {Object} data      待序列化的对象
  * @param {Array?} exclude   包含所有待排除的属性名的数组
  */
-util.stringify = function(data, exclude) {
+util.stringify = function stringify(data, exclude) {
   if(typeof data == 'undefined') {
     return '';
   }
@@ -265,7 +265,7 @@ util.stringify = function(data, exclude) {
 /**
  * 解析JSON数据，当发生错误时，返回传入的默认值
  */
-util.parseJson = function(data, defVal) {
+util.parseJson = function parseJson(data, defVal) {
   try {
     return JSON.parse(data);
   }
