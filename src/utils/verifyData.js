@@ -3,58 +3,9 @@
  */
 const assert = require('assert');
 const crypto = require('crypto')
-const elliptic = require('elliptic');
-const secp256k1 = elliptic.ec('secp256k1');
-
-/**
- * 序列化对象，和 JSON.stringify 不同之处在于：
- *    1、排除了属性排序变化带来的影响
- *    2、主动去除了 exclude 中的属性
- * @param {Object} data      待序列化的对象
- * @param {Array?} exclude   包含所有待排除的属性名的数组
- */
-function stringify(data, exclude) {
-  if(Array.isArray(data)) {
-    return data.reduce((sofar,cur)=>{
-      sofar += stringify(cur);
-      return sofar;
-    }, '');
-  } else if(typeof data == 'number' || typeof data == 'boolean') {
-    return data.toString();
-  } else if(typeof data == 'object') {
-    let base = '';
-    Object.keys(data).sort().map(key=>{
-      if(!exclude || !exclude.includes[key]) {
-          base += key + data[key];
-      }
-    });
-    return base;
-  } else if(Buffer.isBuffer(data)) {
-    return data.toString('base64');
-  }
-  
-  return data;
-}
-  
-function hash(alg, data) {
-    return crypto.createHash(alg).update(data).digest();
-};
-
-function ripemd160(data) {
-  return hash('ripemd160', data);
-};
-
-function hash160(data) {
-  return ripemd160(sha256(data));
-};
- 
-function sha256(data) {
-    return hash('sha256', data);
-};
-
-function hash256(data) {
-    return sha256(sha256(data));
-};
+const secp256k1 = require('./secp256k1');
+const util = require('./util')
+const digest = require('./digest');
 
 const networks = {prefix:[
   {type: 'main' , bech32: 'bc' }, 
@@ -69,16 +20,21 @@ const networks = {prefix:[
  * @returns {Object} {private, public}
  */
 function generateKey(priv) {
-  let key = null;
   if(!priv){
-    key = secp256k1.genKeyPair();
-  } else {
-    key = secp256k1.keyPair({ priv: priv });
+    //生成一个私钥
+    priv = secp256k1.generatePrivateKey();
   }
 
+  if(typeof priv == 'string') {
+    priv = Buffer.from(priv, 'hex');
+  }
+  
+  //预生成配套公钥
+  let pub = secp256k1.publicKeyCreate(priv, true);
+
   return {
-    private: key.getPrivate('hex'),
-    public: key.getPublic(false, 'hex'),
+    private: priv.toString('hex'),
+    public: pub.toString('hex'),
   }
 }
 
@@ -90,9 +46,14 @@ function generateKey(priv) {
  */
 
 function signObj(msg, pri) {
-  let _msg = Buffer.from(stringify(msg), 'hex');
-  let sig = secp256k1.sign(_msg, Buffer.from(pri, 'hex'));
-  return JSON.stringify(sig);
+  msg = digest.hash256(Buffer.from(util.stringify(msg)));
+
+  if(typeof pri == 'string') {
+    pri = Buffer.from(pri, 'hex');
+  }
+
+  let sig = secp256k1.sign(msg, pri);
+  return sig.toString('hex');
 };
 
 /**
@@ -104,9 +65,16 @@ function signObj(msg, pri) {
  */
 
 function verifyObj(msg, sig, pub) {
-  let _msg = Buffer.from(stringify(msg), 'hex');
-  sig = JSON.parse(sig);
-  return secp256k1.verify(_msg, sig, Buffer.from(pub, 'hex'));
+  msg = digest.hash256(Buffer.from(util.stringify(msg)));
+
+  if(typeof sig == 'string') {
+    sig = Buffer.from(sig, 'hex');
+  }
+  if(typeof pub == 'string') {
+    pub = Buffer.from(pub, 'hex');
+  }
+
+  return secp256k1.verify(msg, sig, pub);
 };
 
 /**
@@ -125,24 +93,18 @@ function verifyData(packet) {
     try {
         //取出公钥
         let key = Buffer.from(packet.data.pubkey, 'hex'); 
-        //验证公钥是否是一个合理构造
-        const pub = secp256k1.keyPair({ pub: key }); 
-        if(!pub.validate()) {
-            return false;
-        }
-        //至此，证明了公钥是合理的结构
 
         //取待校验数据，注意序列化时使用了属性名自然排序，因此要求签名时也必须使用属性名自然排序
-        let src = Buffer.from(stringify(packet.data));
+        let src = Buffer.from(util.stringify(packet.data));
 
         //利用公钥校验数据
         if(secp256k1.verify(
-            hash256(src),                       //将待校验的数据对象规整为32字节哈希
+            digest.hash256(src),                //将待校验的数据对象规整为32字节哈希
             Buffer.from(packet.sig, 'hex'),     //取签名信息
             key,                                //公钥
         )) {
             //至此，证明了数据签名确实是使用和公钥匹配的私钥加密而来的
-            if(decode(packet.data.addr).hash.toString('hex') == hash160(key).toString('hex')) {
+            if(decode(packet.data.addr).hash.toString('hex') == digest.hash160(key).toString('hex')) {
                 //至此，证明了数据中的地址和公钥是匹配的，持此令牌的用户对该地址拥有支配权
                 return true;  //校验成功
             }
@@ -499,4 +461,5 @@ module.exports.verifyAddress = verifyAddress;
 module.exports.generateKey = generateKey;
 module.exports.signObj = signObj;
 module.exports.verifyObj = verifyObj;
-module.exports.hash256 = hash256;
+module.exports.hash256 = digest.hash256;
+module.exports.hash160 = digest.hash160;

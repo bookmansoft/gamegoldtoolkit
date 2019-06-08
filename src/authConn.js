@@ -4,8 +4,9 @@
  * 通过合适的打包程序，也可以用于浏览器环境
  */
 
-const {io, signHMAC, Base64, createHmac, ReturnCode, NotifyType, CommMode, now} = require('./util')
-const {generateKey, signObj, verifyObj, hash256} = require('./verifyData')
+const {io, signHMAC, Base64, createHmac, ReturnCode, NotifyType, CommMode, now} = require('./utils/util')
+const {generateKey, signObj, hash256} = require('./utils/verifyData')
+const Secret = require('./utils/secret')
 
 /**
  * 终端配置管理
@@ -52,11 +53,13 @@ class AuthConn
    */
   setmode(mode, cb) {
     this.mode = mode;
-    if(cb) {
+    if(this.mode == CommMode.ws) {
       this.socketEvents['connect'] = async () => {
         await this.login();
         await this.join();
-        await cb();
+        if(typeof cb == 'function') {
+          await cb();
+        }
       };
     }
     return this;
@@ -363,7 +366,7 @@ class AuthConn
     options.body = JSON.stringify(options.body);
 
     let auth = {
-        username: 'bitcoinrpc',
+        username: 'gamerpc',
         password: this.getTerminalConfig().apiKey || '',
     };
     var base = new Base64();
@@ -426,7 +429,7 @@ class AuthConn
       this.socket.on(key, this.socketEvents[key]);
     });
 
-    await (async function(time){return new Promise(resolve =>{setTimeout(resolve, time);});})(500);
+    await (async function(time){return new Promise(resolve =>{setTimeout(resolve, time);});})(2000);
   }
 
   /**
@@ -551,10 +554,12 @@ AuthConn.prototype.CommMode = CommMode;
 AuthConn.prototype.NotifyType = NotifyType;
 AuthConn.prototype.ReturnCode = ReturnCode;
 AuthConn.prototype.createHmac = createHmac;
+AuthConn.prototype.Secret = Secret;
 
 AuthConn.CommMode = CommMode;
 AuthConn.ReturnCode = ReturnCode;
 AuthConn.createHmac = createHmac;
+AuthConn.Secret = Secret;
 
 /**
  * 访问游戏金节点的远程调用函数

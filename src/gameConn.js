@@ -1,4 +1,4 @@
-const {clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('./util')
+const {clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('./utils/util')
 
 /**
  * RPC控件

@@ -14,7 +14,7 @@ Array.prototype.randObj = function(){
 }
 
 const toolkit = exports;
-const {encrypt, decrypt} = require('./util');
+const {encrypt, decrypt} = require('./utils/util');
 
 //游戏金链连接器
 toolkit.conn = require('./authConn');
@@ -23,7 +23,7 @@ toolkit.conn = require('./authConn');
 toolkit.gameconn = require('./gameConn');
 
 //校验函数
-let {verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./verifyData');
+let {verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./utils/verifyData');
 toolkit.generateKey = generateKey;
 toolkit.signObj = signObj;
 toolkit.verifyObj = verifyObj;

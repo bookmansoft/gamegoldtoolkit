@@ -28,6 +28,7 @@
 
 		(async () => {
 			//查询账户余额
+			await remote.execute('miner.setsync.admin', []);
 			let ret = await remote.execute('balance.all', []);
 			document.getElementById('content').innerHTML = JSON.stringify(ret);
 		})();
