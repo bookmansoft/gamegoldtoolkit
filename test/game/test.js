@@ -6,38 +6,52 @@
 const conn = require('../../src/gameConn')
 
 //创建连接器对象
-let remote = new conn(conn.CommMode.get, {
+let remote = new conn({
     "UrlHead": "http",              //协议选择: http/https
-    "webserver": {
+    "webserver": { 
+        //注意：如果需要负载均衡，这里一般指定负载均衡服务器地址，否则直接填写业务主机地址
         "host": "127.0.0.1",        //远程主机地址
         "port": 9901                //远程主机端口
     },
-    "auth": {
-        "openid": "18681223392",    //用户ID
-        "openkey": "18681223392",   //用户令牌
-        "domain": "tx.IOS",         //验证模式
-        "pf": "wanba_ts"            //验证附加参数
-    }
 })
 .setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 
-describe.skip('游戏云基本连接测试', () => {
-    beforeEach(async () => {
-        let msg = await remote.login({domain: 'tx.IOS', openid: `${Math.random()*1000000000 | 0}`});
-        remote.isSuccess(msg);
+async function execute(params, longpoll) {
+    if(longpoll) {
+        //设置为长连模式
+        remote.setmode(conn.CommMode.ws);
+    }
+
+    //如果需要负载均衡，选择执行如下语句，否则跳过
+    if(!(await remote.setLB())) {
+        throw(new Error('lbs error'));
+    }
+
+    //执行业务流程，连接器会自动检测，必要时先执行登录操作
+    let msg = await remote.fetching(params);
+    remote.isSuccess(msg, true);
+}
+
+describe('游戏云基本连接测试', () => {
+    beforeEach(()=>{
+        //设置用户基本信息
+        remote.setUserInfo({
+            domain: 'tx.IOS', 
+            openid: `${Math.random()*1000000000 | 0}`,
+            openkey: '',
+            authControl: 'UserDefine',
+        });
     });
 
-    /**
-     * 一个单元测试，可使用 skip only 修饰
-     * 和负载均衡相关的单元测试，首先连接9901端口，发送config.getServerInfo请求，携带 "stype":"IOS", "oemInfo":{"openid":'helloworl'} 等参数，返回值：data.newbie:是否新注册用户 data.ip:服务器IP, data.port:服务器端口号
-     */
-    it('注册并登录 - 自动负载均衡'/*单元测试的标题*/, /*单元测试的函数体，书写测试流程*/ async () => {
-        try {
-            msg = await remote.fetching({func: "getEffect"});
-            remote.isSuccess(msg, true);
+    it('短连接注册并登录 - 自动负载均衡', async () => {
+        for(let i = 0; i < 1; i++) {
+            await execute({func: "getEffect"});
         }
-        catch(e) {
-            console.error(e);
+    });
+
+    it('长连接注册并登录 - 自动负载均衡', async () => {
+        for(let i = 0; i < 1; i++) {
+            await execute({func: "getEffect"}, true);
         }
     });
 });

@@ -8,24 +8,12 @@ const {clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('.
  *      3、内部封装了一定的断言功能
  */
 class Remote {
-    constructor($mode = CommMode.ws, options){
-        //切换长短连的标志 http socket
-        this.rpcMode = $mode;
-
+    constructor(options){
+        this.rpcMode = this.CommMode.post;
         this.configOri = options;                   //读取并保存初始配置，不会修改
         this.config = clone(this.configOri);        //复制一份配置信息，有可能修改
-
-        this.userInfo = {
-            domain: this.config.auth.domain,
-            openid: this.config.auth.openid,
-            openkey: this.config.auth.openkey,
-            pf: this.config.auth.pf
-        };
-        this.autoLogin = false;
-
         this.notifyHandles = {};
-        /*通过使用统一的socket来保持包含多个交互过程的会话*/
-        this.createSocket(this.config.webserver.host, this.config.webserver.port);
+        this.userInfo = {};
     }
 
     /**
@@ -46,133 +34,124 @@ class Remote {
      * @param {*} ip 
      * @param {*} port 
      */
-    createSocket(ip, port){
+    async createSocket(ip, port){
         this.close();
 
-        this.socket = io(`${this.config.UrlHead}://${ip}:${port}`, {'force new connection': true})
-        .on('notify', ret => {//监听推送消息
-            if(this.notifyHandles[ret.type]) {
-                this.notifyHandles[ret.type](ret.info);
-            }
-            else if(!!this.notifyHandles['0']){
-                this.notifyHandles['0'](ret.info);
-            }
-        })
-        .on('disconnect', ()=>{//断线重连
-            this.socket.needConnect = true;
-            setTimeout(()=>{
-                if(!!this.socket.needConnect) {
-                    this.socket.needConnect = false;
-                    this.socket.connect();
+        this.socket = io(`${this.config.UrlHead}://${ip}:${port}`, {'force new connection': true});
+        return new Promise((resolve, reject) => {
+            this.socket.on('notify', ret => {//监听推送消息
+                if(this.notifyHandles[ret.type]) {
+                    this.notifyHandles[ret.type](ret.info);
                 }
-            }, 1500);
-        })
-        .on('connect', () => { //连接消息
-            if(this.notifyHandles['onConnect']) {
-                this.notifyHandles['onConnect']();
-            }
+                else if(!!this.notifyHandles['0']){
+                    this.notifyHandles['0'](ret.info);
+                }
+            })
+            .on('disconnect', ()=>{//断线重连
+                this.userInfo.token = null;
+                this.socket.needConnect = true;
+                setTimeout(()=>{
+                    if(!!this.socket.needConnect) {
+                        this.socket.needConnect = false;
+                        this.socket.connect();
+                    }
+                }, 1500);
+            })
+            .on('connect', async () => { //连接消息
+                if(await this.login()) {
+                    if(this.notifyHandles['onConnect']) {
+                        await this.notifyHandles['onConnect']();
+                    }
+                    resolve();
+                } else {
+                    this.close();
+                    reject();
+                }
+            });
         });
     }
 
     /**
-     * 类360的认证流程
+     * 登录操作
      */
-    async authOfBasic() {
-        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
-            .fetching({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
+    async login() {
+        if(await this.getSign()) {
+            if(await this.getToken()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-        if(!!msg && msg.code == ReturnCode.Success) {
+    /**
+     * 获取签名
+     */
+    async getSign() {
+        if(this.userInfo.authControl) {
             //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-            msg = await this.locate(msg.data.ip, msg.data.port).getRequest({id: this.userInfo.openid, authControl: this.userInfo.authControl || `auth360.html`});
-
+            let msg = await this.getRequest({id: this.userInfo.openid, authControl: this.userInfo.authControl});
             //客户端从模拟网关取得了签名集
             if(!msg || !msg.sign) {
-                throw new Error('login: empty sign');
+                return false;
             }
 
-            //将签名集发送到服务端进行验证、注册、绑定
-            msg = await this.fetching({
-                'func': '1000',
-                "oemInfo": {
-                    "domain": this.userInfo.domain,             //指定第三方平台类型
-                    "authControl": this.userInfo.authControl,   //自定义验签
-                    "auth":msg                                  //发送签名集
-                }
-            });
-
-            if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
-                this.userInfo.id = msg.data.id;
-                this.userInfo.token = msg.data.token;
-            }
+            this.userInfo.auth = msg;
         }
-        
-        return msg;
+
+        return true;
     }
 
     /**
-     * 后台管理员的登录验证流程
+     * 获取令牌
      */
-    async authOfAdmin(){
-        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
-            .getRequest({openid: this.userInfo.openid, openkey: this.userInfo.openkey, authControl: `authAdmin.html`});
+    async getToken() {
+        //将签证发送到服务端进行验证
+        let msg = await this.fetching({
+            'func': '1000',
+            "oemInfo": this.userInfo,
+        });
 
-        if(!!msg && msg.code == ReturnCode.Success) {
-            //将签名集发送到服务端进行验证、注册、绑定
-            msg = await this.fetching({
-                'func': 'admin.login',
-                "oemInfo": {
-                    "domain": this.userInfo.domain /*指定第三方平台类型*/,
-                    "auth":msg /*发送签名集，类似的，TX平台此处是发送openid/openkey以便前向校验 */
-                }
-            });``
+        if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
+            this.userInfo.id = msg.data.id;
+            this.userInfo.token = msg.data.token;
 
-            if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
-                this.userInfo.id = msg.data.id;
-                this.userInfo.token = msg.data.token;
-            }
-        }
-
-        return msg;
-    }
-
-    async authOfTx() {
-        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
-            .fetching({
-                "func": "config.getServerInfo", 
-                "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
-
-        if(!!msg && msg.code == ReturnCode.Success) {
-            //腾讯登录：上行openid、openkey，服务端验证后返回结果
-            msg = await this.locate(msg.data.ip, msg.data.port).fetching({
-                'func': '1000',
-                "oemInfo": this.userInfo
-            });
-        
-            if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
-                this.userInfo.id = msg.data.id;
-                this.userInfo.token = msg.data.token;
-            }
-        }
-        return msg;
+            return true;
+        } 
+        return false;
     }
 
     /**
-     * 设置服务端推送报文的监控句柄，支持链式调用
-     * @param cb            回调
-     * @param etype
-     * @returns {Remote}
-     */
-    watch(cb, etype = '0') {
-        this.notifyHandles[etype] = cb;
-        return this;
-    }
-
-    /**
-     * 执行登录流程，获取登录应答
+     * 执行负载均衡流程
      * @param {*} ui 
      */
-    async login(ui) {
+    async setLB() {
+        if(!this.userInfo) {
+            return false;
+        }
+
+        this.userInfo.token = null; //清空先前缓存的token
+
+        let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
+            .getRequest({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
+
+        if(!!msg && msg.code == ReturnCode.Success) {
+            this.locate(msg.data.ip, msg.data.port);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 设置用户信息
+     * @param {*} ui {openid, autoControl}
+     */
+    async setUserInfo(ui) {
+        this.userInfo = this.userInfo || {};
+        this.userInfo.token = null; //清空先前缓存的token
+
         if(!!ui) {
+            this.userInfo.authControl = ui.authControl;
             if(!!ui.domain) {
                 this.userInfo.domain = ui.domain;
             }
@@ -185,14 +164,20 @@ class Remote {
             if(!!ui.pf) {
                 this.userInfo.pf = ui.pf;
             }
-            if(!!ui.authControl) {
-                this.userInfo.authControl = ui.authControl;
-            }
         }
-        this.userInfo.token = null; //清空先前缓存的token
-        this.autoLogin = true;
 
-        return this.$login();
+        return true;
+    }
+
+    /**
+     * 设置服务端推送报文的监控句柄，支持链式调用
+     * @param cb            回调
+     * @param etype
+     * @returns {Remote}
+     */
+    watch(cb, etype = '0') {
+        this.notifyHandles[etype] = cb;
+        return this;
     }
 
     /**
@@ -260,31 +245,6 @@ class Remote {
     }
 
     /**
-     * 执行认证流程，成功后调用由参数cb指定的回调
-     * @param {*} cb 回调
-     */
-    async $login() {
-        if(this.autoLogin) {
-            this.autoLogin = false;
-            switch(this.userInfo.domain.split('.')[0]) {
-                case "admin": {
-                    return this.authOfAdmin();
-                }
-
-                case "tx": {
-                    return this.authOfTx();
-                }
-
-                default: {
-                    return this.authOfBasic();
-                }
-            }
-        }
-
-        return Promise.resolve();
-    }
-
-    /**
      * 为了提供node下的兼容性而添加的属性设定函数
      * @param {*} fn 
      */
@@ -302,36 +262,30 @@ class Remote {
      * @returns {*}
      */
     async fetching(params) {
-        if(this.autoLogin) {
-            await this.$login();
-            return this.fetching(params);
-        }
-
-        if(!!params.authControl) {
-            return this.getRequest(params);
-        }
-        else {
-            this.parseParams(params);
+        this.parseParams(params);
             
-            switch(this.rpcMode) {
-                case CommMode.ws:
-                    return new Promise((resolve, reject) => {
-                        try {
-                            this.socket.emit('req', params, msg => {
-                                resolve(msg);
-                            });
-                        }
-                        catch(e) {
-                            reject(e);
-                        }
+        switch(this.rpcMode) {
+            case CommMode.ws:
+                if(!this.socket) {
+                    await this.createSocket(this.config.webserver.host, this.config.webserver.port);
+                }
+                return new Promise((resolve, reject) => {
+                    this.socket.emit('req', params, msg => {
+                        resolve(msg);
                     });
+                });
 
-                case CommMode.get:
-                    return this.getRequest(params);
+            case CommMode.get:
+                if(!this.userInfo.token && params.func != '1000') {
+                    await this.login();
+                }
+                return this.getRequest(params);
 
-                case CommMode.post:
-                    return this.postRequest(params);
-            }
+            case CommMode.post:
+                if(!this.userInfo.token && params.func != '1000') {
+                    await this.login();
+                }
+                return this.postRequest(params);
         }
 
         return Promise.reject();
@@ -347,7 +301,6 @@ class Remote {
         this.config.webserver.host = ip;
         this.config.webserver.port = port;
 
-        this.createSocket(ip, port);
         return this;
     }
 
@@ -359,6 +312,9 @@ class Remote {
             this.socket.removeAllListeners();
             this.socket.disconnect();
             this.socket = null;
+        }
+        if(this.userInfo) {
+            this.userInfo.token = null;
         }
         return this;
     }
