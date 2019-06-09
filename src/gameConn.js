@@ -34,7 +34,14 @@ class Remote {
      * @param {*} ip 
      * @param {*} port 
      */
-    async createSocket(ip, port){
+    async createSocket(ip, port) {
+        if(!ip) {
+            ip = this.config.webserver.host;
+        }
+        if(!port) {
+            port = this.config.webserver.port;
+        }
+
         this.close();
 
         this.socket = io(`${this.config.UrlHead}://${ip}:${port}`, {'force new connection': true});
@@ -233,7 +240,7 @@ class Remote {
     }
 
     get newone(){
-        return new Remote(this.rpcMode, this.configOri);
+        return new Remote(this.configOri).setmode(this.rpcMode);
     }
 
     /**
@@ -241,7 +248,7 @@ class Remote {
       * @returns {Remote}
      */
     get new(){
-        return new Remote(this.rpcMode, this.configOri);
+        return new Remote(this.configOri).setmode(this.rpcMode);
     }
 
     /**
