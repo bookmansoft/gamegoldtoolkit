@@ -1,11 +1,6 @@
-const {clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('./utils/util');
+const {extendObj, CommStatus, clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('./utils/util');
 const EventEmitter = require('events').EventEmitter;
 const Indicator = require('./utils/Indicator');
-
-const CommStatus = {
-    authed:     2^1,    //已经获得签名数据
-    logined:    2^2,    //已经成功登录
-}
 
 /**
  * RPC控件
@@ -17,6 +12,7 @@ const CommStatus = {
 class Remote {
     constructor(options){
         this.rpcMode = this.CommMode.post;
+        this.loginMode = Indicator.inst();
         this.configOri = options;                   //读取并保存初始配置，不会修改
         this.config = clone(this.configOri);        //复制一份配置信息，有可能修改
         this.notifyHandles = {};
@@ -24,7 +20,16 @@ class Remote {
         //事件管理器
         this.events = new EventEmitter();
         //状态管理器
-        this.status = Indicator.inst();
+        this.status = Indicator.inst(options.status);
+
+        //捕获Socket连接事件，在连接/重连时发送登录报文
+        this.events.on('onConnect', async ()=>{
+            await this.login();
+        });
+
+        this.events.on('authcode', async code=>{
+            await this.setSign(code).login();
+        })
     }
 
     /**
@@ -62,7 +67,8 @@ class Remote {
             }
         })
         .on('disconnect', ()=>{//断线重连
-            this.userInfo.token = null;
+            this.clearCache();
+
             this.socket.needConnect = true;
             setTimeout(()=>{
                 if(!!this.socket.needConnect) {
@@ -72,6 +78,7 @@ class Remote {
             }, 1500);
         })
         .on('connect', () => { //连接消息
+            this.clearCache();
             this.events.emit('onConnect', this.status.value);
         });
         await (async (time) => {return new Promise(resolve => {setTimeout(resolve, time);});})(1000);
@@ -82,7 +89,7 @@ class Remote {
      */
     async getSign() {
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-        let msg = await this.getRequest({id: this.userInfo.openid, authControl: this.userInfo.domain});
+        let msg = await this.getRequest({id: this.userInfo.openid, }, this.userInfo.domain);
         //客户端从模拟网关取得了签名集
         if(!msg) {
             return false;
@@ -94,9 +101,32 @@ class Remote {
     }
 
     /**
+     * 设置签名验证码
+     * @param {*} code 
+     */
+    setSign(code) {
+        if(!!this.userInfo) {
+            if(this.loginMode.check(CommStatus.reqSign)) {
+                this.status.set(CommStatus.signCode);
+                this.userInfo.openkey = code;
+            }
+        }
+        return this;
+    }
+
+    /**
      * 获取令牌
      */
     async getToken() {
+        if(!this.userInfo 
+            || (this.loginMode.check(CommStatus.reqLb) && !this.status.check(CommStatus.lb)) 
+            || (this.loginMode.check(CommStatus.reqSign) && !this.status.check(CommStatus.signCode)
+            || this.status.check(CommStatus.logined))
+        ) {
+            //不满足登录的前置条件或已经登录
+            return;
+        }
+
         //将签证发送到服务端进行验证
         let msg = await this.fetching({
             'func': '1000',
@@ -106,6 +136,7 @@ class Remote {
         if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
             this.userInfo.id = msg.data.id;
             this.userInfo.token = msg.data.token;
+            this.status.set(CommStatus.logined);
 
             return true;
         } 
@@ -113,20 +144,40 @@ class Remote {
     }
 
     /**
+     * 清空先前的缓存状态
+     */
+    clearCache() {
+        if(this.userInfo) {
+            this.userInfo.token = null; 
+            this.userInfo.auth = null;
+        }
+
+        //复位通讯状态
+        this.status.init();
+    }
+
+    /**
      * 执行负载均衡流程
      * @param {*} ui 
      */
-    async setLB() {
+    async setLB(force) {
         if(!this.userInfo) {
+            //尚未设置有效的用户数据，无法执行
             return false;
         }
 
-        this.userInfo.token = null; //清空先前缓存的token
+        if(!force && this.status.check(CommStatus.lb)) {
+            //已经执行过LB操作，且非强制执行模式
+            return true;
+        }
+
+        this.clearCache();
 
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
-            .getRequest({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
+        .getRequest({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
 
         if(!!msg && msg.code == ReturnCode.Success) {
+            this.status.set(CommStatus.lb);
             this.locate(msg.data.ip, msg.data.port);
             return true;
         }
@@ -135,29 +186,67 @@ class Remote {
     }
 
     /**
-     * 设置用户信息
-     * @param {*} ui {openid, autoControl}
+     * 登录流程
      */
-    async setUserInfo(ui) {
-        this.userInfo = this.userInfo || {};
-        this.userInfo.token = null; //清空先前缓存的token
+    async login() {
+        if(!this.userInfo) {
+            return;
+        }
 
-        if(!!ui) {
-            if(!!ui.domain) {
-                this.userInfo.domain = ui.domain;
-            }
-            if(!!ui.openid) {
-                this.userInfo.openid = ui.openid;
-            }
-            if(!!ui.openkey) {
-                this.userInfo.openkey = ui.openkey;
-            }
-            if(!!ui.pf) {
-                this.userInfo.pf = ui.pf;
+        //检测执行负载均衡
+        if(this.loginMode.check(CommStatus.reqLb)) {
+            if(!this.status.check(CommStatus.lb)) {
+                //如果需要负载均衡且尚未执行，执行如下语句
+                if(!(await this.setLB())) {
+                    //如果负载均衡失败，抛出异常，外围程序负责重新调用
+                    throw(new Error('lbs error'));
+                } else {
+                    this.status.set(CommStatus.lb);
+                }
             }
         }
 
-        return true;
+        //检测执行两阶段验证
+        //两阶段验证模式(例如浏览器直接登录)：执行此操作，访问控制器方法 domain.auth 获取签名对象，并赋值到 userInfo.auth 字段，服务端同时会将关联验证码通过邮件或短信下发
+        //第三方授权登录模式(例如微信或QQ登录)：跳过此步
+        if(this.loginMode.check(CommStatus.reqSign)) {
+            if(!this.status.check(CommStatus.sign)) {
+                //如果需要两阶段验证且尚未执行，执行如下语句
+                if(!(await this.getSign())) {
+                    //如果负载均衡失败，抛出异常，外围程序负责重新调用
+                    throw(new Error('lbs error'));
+                } else {
+                    this.status.set(CommStatus.sign);
+                }
+            } else {
+                await this.getToken();
+            }
+        } else {
+            await this.getToken();
+        }
+    }
+
+    /**
+     * 设置用户信息
+     * 1. 支持局部设定模式
+     * 2. 每次设置，状态类缓存会被清除，通讯状态被复原
+     * @param {Object} ui {openid}
+     * @param {Number} st 登录流程描述符
+     */
+    setUserInfo(ui, st) {
+        this.userInfo = this.userInfo || {};
+
+        this.clearCache();
+
+        //设置登录模式
+        if(!!st) {
+            this.loginMode.init(st);
+        }
+
+        //合并对象数据
+        extendObj(this.userInfo, ui);
+
+        return this;
     }
 
     /**
@@ -254,7 +343,11 @@ class Remote {
      */
     async fetching(params) {
         this.parseParams(params);
-            
+
+        if(this.loginMode.check(CommStatus.reqLb) && !this.status.check(CommStatus.lb)) {
+            await this.setLB();
+        }
+
         switch(this.rpcMode) {
             case CommMode.ws:
                 if(!this.socket) {
@@ -298,9 +391,9 @@ class Remote {
             this.socket.disconnect();
             this.socket = null;
         }
-        if(this.userInfo) {
-            this.userInfo.token = null;
-        }
+
+        this.clearCache();
+
         return this;
     }
 
@@ -392,10 +485,10 @@ class Remote {
      * (内部函数)发起基于Http协议的RPC请求
      * @param params
      */
-    async getRequest(params) {
+    async getRequest(params, authControl) {
         this.parseParams(params);
 
-        let url = !!params.authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let url = !!authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
         url += "?" + Object.keys(params).reduce((ret, next)=>{
                 if(ret != ''){ ret += '&'; }
                 return ret + next + "=" + ((typeof params[next]) == "object" ? JSON.stringify(params[next]) : params[next]);
@@ -408,21 +501,13 @@ class Remote {
      * (内部函数)发起基于Http协议的RPC请求
      * @param params
      */
-    async postRequest(params) {
+    async postRequest(params, authControl) {
         this.parseParams(params);
 
-        let url = !!params.authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${params.authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let url = !!authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
 
         return this.post(url, params);
     }
 }
-
-Remote.CommMode = CommMode;
-Remote.ReturnCode = ReturnCode;
-Remote.NotifyType = NotifyType;
-
-Remote.prototype.CommMode = CommMode;
-Remote.prototype.ReturnCode = ReturnCode;
-Remote.prototype.NotifyType = NotifyType;
 
 module.exports = Remote;

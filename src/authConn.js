@@ -4,9 +4,8 @@
  * 通过合适的打包程序，也可以用于浏览器环境
  */
 
-const {io, signHMAC, Base64, createHmac, ReturnCode, NotifyType, CommMode, now} = require('./utils/util')
+const {io, signHMAC, Base64, CommMode, now} = require('./utils/util')
 const {generateKey, signObj, hash256} = require('./utils/verifyData')
-const Secret = require('./utils/secret')
 
 /**
  * 终端配置管理
@@ -546,21 +545,6 @@ class AuthConn
     return this;
   }
 }
-
-/**
- * 通讯模式
- */
-AuthConn.prototype.CommMode = CommMode;
-AuthConn.prototype.NotifyType = NotifyType;
-AuthConn.prototype.ReturnCode = ReturnCode;
-AuthConn.prototype.createHmac = createHmac;
-AuthConn.prototype.Secret = Secret;
-
-AuthConn.CommMode = CommMode;
-AuthConn.NotifyType = NotifyType;
-AuthConn.ReturnCode = ReturnCode;
-AuthConn.createHmac = createHmac;
-AuthConn.Secret = Secret;
 
 /**
  * 访问游戏金节点的远程调用函数

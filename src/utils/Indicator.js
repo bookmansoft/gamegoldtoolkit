@@ -18,6 +18,10 @@ class Indicator
         return this.indicate;
     }
 
+    init(val) {
+        this.indicate = !!val ? val : 0;
+    }
+
     /**
      * 设置标志位，支持链式操作
      * @param val
