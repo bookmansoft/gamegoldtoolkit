@@ -14,7 +14,6 @@ remote.setFetch(require('node-fetch')) //设置node环境下兼容的fetch函数
         id:     'primary',            //默认访问的钱包编号
         cid:    'xxxxxxxx-game-gold-root-xxxxxxxxxxxx', //授权节点编号，用于访问远程钱包时的认证
         token:  '03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08', //授权节点令牌固定量，用于访问远程钱包时的认证
-        structured: true,
     }
 );
 
@@ -30,8 +29,7 @@ describe('模拟测试', () => {
     });
 
     it('WEB模式查询余额', async () => {
-        let ret = await remote.execute('miner.setsync.admin', []);
-        ret = await remote.execute('balance.all', []);
+        let ret = await remote.execute('balance.all', []);
         console.log(ret);
     });
 

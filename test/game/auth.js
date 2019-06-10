@@ -16,7 +16,14 @@ let remote = new conn({
 })
 .setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 
+let domain = 'authwx';
+
 async function execute(params, longpoll) {
+    remote.events.on('onConnect', async ()=>{
+        //断线重连时，重新登录
+        //await remote.getToken();
+    });
+
     if(longpoll) {
         //设置为长连模式
         remote.setmode(conn.CommMode.ws);
@@ -27,31 +34,40 @@ async function execute(params, longpoll) {
         throw(new Error('lbs error'));
     }
 
-    //执行业务流程，连接器会自动检测，必要时先执行登录操作
-    let msg = await remote.fetching(params);
+    //浏览器直接登录时执行此操作获取签名，服务端会将验证码通过邮件或短信下发
+    //微信或QQ环境内跳过此步
+    await remote.getSign();
+
+    //查询短信验证码，该接口仅供测试
+    let msg = await remote.fetching({func:`${domain}.getKey`, id: remote.userInfo.openid});
+    remote.setUserInfo({openkey: msg.code});
+
+    await remote.getToken();
+
+    //执行业务流程
+    msg = await remote.fetching(params);
     remote.isSuccess(msg, true);
 }
 
-describe('游戏云基本连接测试', () => {
+describe.only('游戏云基本连接测试', () => {
     beforeEach(()=>{
         //设置用户基本信息
         remote.setUserInfo({
-            domain: 'tx.IOS', 
+            domain: domain,
             openid: `${Math.random()*1000000000 | 0}`,
             openkey: '',
-            authControl: 'UserDefine',
         });
     });
 
     it('短连接注册并登录 - 自动负载均衡', async () => {
         for(let i = 0; i < 1; i++) {
-            await execute({func: "getEffect"});
+            await execute({func: "test.echo"});
         }
     });
 
     it('长连接注册并登录 - 自动负载均衡', async () => {
         for(let i = 0; i < 1; i++) {
-            await execute({func: "getEffect"}, true);
+            await execute({func: "test.echo"}, true);
         }
     });
 });

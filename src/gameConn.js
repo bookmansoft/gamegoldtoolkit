@@ -1,4 +1,11 @@
-const {clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('./utils/util')
+const {clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('./utils/util');
+const EventEmitter = require('events').EventEmitter;
+const Indicator = require('./utils/Indicator');
+
+const CommStatus = {
+    authed:     2^1,    //已经获得签名数据
+    logined:    2^2,    //已经成功登录
+}
 
 /**
  * RPC控件
@@ -14,6 +21,10 @@ class Remote {
         this.config = clone(this.configOri);        //复制一份配置信息，有可能修改
         this.notifyHandles = {};
         this.userInfo = {};
+        //事件管理器
+        this.events = new EventEmitter();
+        //状态管理器
+        this.status = Indicator.inst();
     }
 
     /**
@@ -21,11 +32,8 @@ class Remote {
      * @param {*} $mode     通讯模式
      * @param {*} cb        建立连接时的回调
      */
-    setmode($mode, cb) {
+    setmode($mode) {
         this.rpcMode = $mode;
-        if(cb) {
-            this.notifyHandles['onConnect'] = cb;
-        }
         return this;
     }
 
@@ -45,65 +53,42 @@ class Remote {
         this.close();
 
         this.socket = io(`${this.config.UrlHead}://${ip}:${port}`, {'force new connection': true});
-        return new Promise((resolve, reject) => {
-            this.socket.on('notify', ret => {//监听推送消息
-                if(this.notifyHandles[ret.type]) {
-                    this.notifyHandles[ret.type](ret.info);
-                }
-                else if(!!this.notifyHandles['0']){
-                    this.notifyHandles['0'](ret.info);
-                }
-            })
-            .on('disconnect', ()=>{//断线重连
-                this.userInfo.token = null;
-                this.socket.needConnect = true;
-                setTimeout(()=>{
-                    if(!!this.socket.needConnect) {
-                        this.socket.needConnect = false;
-                        this.socket.connect();
-                    }
-                }, 1500);
-            })
-            .on('connect', async () => { //连接消息
-                if(await this.login()) {
-                    if(this.notifyHandles['onConnect']) {
-                        await this.notifyHandles['onConnect']();
-                    }
-                    resolve();
-                } else {
-                    this.close();
-                    reject();
-                }
-            });
-        });
-    }
-
-    /**
-     * 登录操作
-     */
-    async login() {
-        if(await this.getSign()) {
-            if(await this.getToken()) {
-                return true;
+        this.socket.on('notify', ret => {//监听推送消息
+            if(this.notifyHandles[ret.type]) {
+                this.notifyHandles[ret.type](ret.info);
             }
-        }
-        return false;
+            else if(!!this.notifyHandles['0']){
+                this.notifyHandles['0'](ret.info);
+            }
+        })
+        .on('disconnect', ()=>{//断线重连
+            this.userInfo.token = null;
+            this.socket.needConnect = true;
+            setTimeout(()=>{
+                if(!!this.socket.needConnect) {
+                    this.socket.needConnect = false;
+                    this.socket.connect();
+                }
+            }, 1500);
+        })
+        .on('connect', () => { //连接消息
+            this.events.emit('onConnect', this.status.value);
+        });
+        await (async (time) => {return new Promise(resolve => {setTimeout(resolve, time);});})(1000);
     }
 
     /**
      * 获取签名
      */
     async getSign() {
-        if(this.userInfo.authControl) {
-            //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-            let msg = await this.getRequest({id: this.userInfo.openid, authControl: this.userInfo.authControl});
-            //客户端从模拟网关取得了签名集
-            if(!msg || !msg.sign) {
-                return false;
-            }
-
-            this.userInfo.auth = msg;
+        //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
+        let msg = await this.getRequest({id: this.userInfo.openid, authControl: this.userInfo.domain});
+        //客户端从模拟网关取得了签名集
+        if(!msg) {
+            return false;
         }
+
+        this.userInfo.auth = msg;
 
         return true;
     }
@@ -158,7 +143,6 @@ class Remote {
         this.userInfo.token = null; //清空先前缓存的token
 
         if(!!ui) {
-            this.userInfo.authControl = ui.authControl;
             if(!!ui.domain) {
                 this.userInfo.domain = ui.domain;
             }
@@ -283,15 +267,9 @@ class Remote {
                 });
 
             case CommMode.get:
-                if(!this.userInfo.token && params.func != '1000') {
-                    await this.login();
-                }
                 return this.getRequest(params);
 
             case CommMode.post:
-                if(!this.userInfo.token && params.func != '1000') {
-                    await this.login();
-                }
                 return this.postRequest(params);
         }
 

@@ -2,7 +2,6 @@
  * 定义了一个独立数据校验函数，用于游戏服务端在登录、支付时的独立验证
  */
 const assert = require('assert');
-const crypto = require('crypto')
 const secp256k1 = require('./secp256k1');
 const util = require('./util')
 const digest = require('./digest');

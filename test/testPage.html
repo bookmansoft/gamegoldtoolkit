@@ -9,6 +9,8 @@
 		//获取授权式连接器
 		let remote = new toolkit.conn();
 
+		let gameHelper = new toolkit.gameconn();
+
 		//测试签名算法
 		let key = toolkit.generateKey();
 		let obj = {msg:'hello world'};
@@ -28,10 +30,14 @@
 
 		(async () => {
 			//查询账户余额
-			await remote.execute('miner.setsync.admin', []);
 			let ret = await remote.execute('balance.all', []);
 			document.getElementById('content').innerHTML = JSON.stringify(ret);
 		})();
+
+		gameHelper.events.on('hello', msg=>{
+			console.log(msg);
+		});
+		gameHelper.events.emit('hello', {id:3});
 	</script>
 </body>
 </html>
