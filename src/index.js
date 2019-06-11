@@ -15,7 +15,7 @@ Array.prototype.randObj = function() {
 
 const assert = require('./utils/assert')
 const {CommStatus, createHmac, ReturnCode, CommMode, NotifyType, encrypt, decrypt, stringify} = require('./utils/util');
-let {hash256, verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./utils/verifyData');
+let {sha1, hash160, hash256, verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./utils/verifyData');
 const Secret = require('./utils/secret')
 
 const toolkit = exports;
@@ -43,6 +43,8 @@ toolkit.NotifyType = NotifyType;
 toolkit.createHmac = createHmac;
 toolkit.Secret = Secret;
 toolkit.hash256 = hash256;
+toolkit.hash160 = hash160;
+toolkit.sha1 = sha1;
 
 toolkit.conn.prototype.assert = assert;
 toolkit.conn.prototype.stringify = stringify;
@@ -60,6 +62,8 @@ toolkit.conn.prototype.NotifyType = NotifyType;
 toolkit.conn.prototype.createHmac = createHmac;
 toolkit.conn.prototype.Secret = Secret;
 toolkit.conn.prototype.hash256 = hash256;
+toolkit.conn.prototype.hash160 = hash160;
+toolkit.conn.prototype.sha1 = sha1;
 
 toolkit.gameconn.prototype.assert = assert;
 toolkit.gameconn.prototype.stringify = stringify;
@@ -77,5 +81,7 @@ toolkit.gameconn.prototype.NotifyType = NotifyType;
 toolkit.gameconn.prototype.createHmac = createHmac;
 toolkit.gameconn.prototype.Secret = Secret;
 toolkit.gameconn.prototype.hash256 = hash256;
+toolkit.gameconn.prototype.hash160 = hash160;
+toolkit.gameconn.prototype.sha1 = sha1;
 
 global.toolkit = toolkit;

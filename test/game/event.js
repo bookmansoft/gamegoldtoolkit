@@ -1,5 +1,5 @@
 /**
- * 联机单元测试：本地全节点提供运行时环境
+ * 联机单元测试：事件模型
  */
 
 //引入连接游戏云的远程连接器
@@ -16,11 +16,24 @@ let remote = new conn({
 })
 .setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 
-describe('游戏云基本连接测试', () => {
-    it('短连接注册并登录 - 自动负载均衡', async () => {
+describe('事件模型测试', () => {
+    it('测试消息的发送和监听', async () => {
         remote.events.on('hello', msg => {
             console.log(msg);
         });
         remote.events.emit('hello', {id:3});
+    });
+
+    it('测试消息监听和移除监听', async () => {
+        //必须声明一个非匿名函数，才能用于移除流程
+        async function onConnect() {
+            await remote.login();
+        }
+
+        //反复监听和移除，没有导致监听句柄数量超限，说明移除成功
+        for(let i = 0; i < 1000; i++) {
+            remote.events.on('onConnect', onConnect);
+            remote.events.removeListener('onConnect', onConnect);
+        }
     });
 });

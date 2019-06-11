@@ -462,3 +462,4 @@ module.exports.signObj = signObj;
 module.exports.verifyObj = verifyObj;
 module.exports.hash256 = digest.hash256;
 module.exports.hash160 = digest.hash160;
+module.exports.sha1 = digest.sha1;

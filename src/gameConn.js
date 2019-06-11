@@ -10,7 +10,7 @@ const Indicator = require('./utils/Indicator');
  *      3、内部封装了一定的断言功能
  */
 class Remote {
-    constructor(options){
+    constructor(options) {
         this.rpcMode = this.CommMode.post;
         this.loginMode = Indicator.inst();
         this.configOri = options;                   //读取并保存初始配置，不会修改
@@ -23,8 +23,12 @@ class Remote {
         this.status = Indicator.inst(options.status);
 
         //捕获Socket连接事件，在连接/重连时发送登录报文
-        this.events.on('onConnect', async ()=>{
-            await this.login();
+        this.events.on('comm', async (data)=>{
+            switch(data.status) {
+                case 'connect': {
+                    break;
+                }
+            }
         });
 
         this.events.on('authcode', async code=>{
@@ -67,8 +71,6 @@ class Remote {
             }
         })
         .on('disconnect', ()=>{//断线重连
-            this.clearCache();
-
             this.socket.needConnect = true;
             setTimeout(()=>{
                 if(!!this.socket.needConnect) {
@@ -78,8 +80,7 @@ class Remote {
             }, 1500);
         })
         .on('connect', () => { //连接消息
-            this.clearCache();
-            this.events.emit('onConnect', this.status.value);
+            this.events.emit('comm', {status: 'connect'});
         });
         await (async (time) => {return new Promise(resolve => {setTimeout(resolve, time);});})(1000);
     }
@@ -151,9 +152,6 @@ class Remote {
             this.userInfo.token = null; 
             this.userInfo.auth = null;
         }
-
-        //复位通讯状态
-        this.status.init();
     }
 
     /**
@@ -172,6 +170,7 @@ class Remote {
         }
 
         this.clearCache();
+        this.status.init();
 
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
         .getRequest({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
@@ -192,10 +191,11 @@ class Remote {
     async login(force) {
         if(force) {
             this.clearCache();
+            this.status.init();
         }
 
-        if(remote.status.check(remote.CommStatus.logined)) {
-            return true;
+        if(this.status.check(CommStatus.logined)) {
+            return false;
         }
 
         if(!this.userInfo) {
@@ -208,7 +208,7 @@ class Remote {
                 //如果需要负载均衡且尚未执行，执行如下语句
                 if(!(await this.setLB())) {
                     //如果负载均衡失败，抛出异常，外围程序负责重新调用
-                    throw(new Error('lbs error'));
+                    throw(new Error('lb error'));
                 } else {
                     this.status.set(CommStatus.lb);
                 }
@@ -223,7 +223,7 @@ class Remote {
                 //如果需要两阶段验证且尚未执行，执行如下语句
                 if(!(await this.getSign())) {
                     //如果负载均衡失败，抛出异常，外围程序负责重新调用
-                    throw(new Error('lbs error'));
+                    throw(new Error('get sign error'));
                 } else {
                     this.status.set(CommStatus.sign);
                 }
@@ -402,7 +402,6 @@ class Remote {
         }
 
         this.clearCache();
-
         return this;
     }
 

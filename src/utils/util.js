@@ -1249,7 +1249,7 @@ function divSafe(div) {
  * 客户端请求返回值，统一定义所有的错误码，每100个为一个大类
  */
 const ReturnCode = {
-    Success: 0,         //操作成功
+    Success: 0,           //操作成功
 };
 
 /**
@@ -1260,8 +1260,8 @@ const CommStatus = {
   sign:       2,      //已经获得签名数据
   signCode:   4,      //已经获得签名数据
   logined:    8,      //已经成功登录
-  reqSign:    2^30,   //需要获取两阶段认证的签名数据
-  reqLb:      2^31,   //需要执行负载均衡
+  reqSign:    1024,   //需要获取两阶段认证的签名数据
+  reqLb:      2048,   //需要执行负载均衡
 }
 
 const ReturnCodeName = {
