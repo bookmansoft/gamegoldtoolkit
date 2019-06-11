@@ -1,5 +1,8 @@
 /**
- * 联机单元测试：本地全节点提供运行时环境
+ * 联机单元测试：客户端用户注册登录流程，其典型型流程如下：
+ * 1. remote.setUserInfo                            设置用户信息
+ * 2. await remote.login()                          用户注册/登录
+ * 3. remote.events.emit('authcode', authcode)      两阶段提交模式下提交验证码
  */
 
 //引入连接游戏云的远程连接器
@@ -16,8 +19,10 @@ let remote = new gameconn({
 }).setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 
 async function execute(params) {
-    if(!remote.status.check(remote.CommStatus.logined)) {
+    try {
         await remote.login();
+    } catch(e) {
+
     }
 
     //此处只是模拟用户输入验证码的流程，实际运用中，当用户提交验证码时应立即触发 authcode 事件
@@ -25,14 +30,18 @@ async function execute(params) {
         //查询短信验证码，该接口仅供测试
         let msg = await remote.fetching({func:`${remote.userInfo.domain}.getKey`, id: remote.userInfo.openid});
 
-        //使用事件驱动登录
+        //当用户输入验证码时，使用事件驱动登录操作
         remote.events.emit('authcode', msg.code);
         await (async function(time){return new Promise(resolve =>{setTimeout(resolve, time);});})(1000);
     }
 
     //执行业务流程
-    let msg = await remote.fetching(params);
-    remote.isSuccess(msg, true);
+    try {
+        let msg = await remote.fetching(params);
+        remote.isSuccess(msg, true);
+    } catch(e) {
+        console.error(e);
+    }
 }
 
 describe.only('游戏云基本连接测试', () => {

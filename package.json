@@ -1,6 +1,6 @@
 {
   "name": "gamerpc",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "description": "connector for gamecloud & gamegold",
   "main": "index.js",
   "scripts": {

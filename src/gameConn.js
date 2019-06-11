@@ -187,10 +187,19 @@ class Remote {
 
     /**
      * 登录流程
+     * @param {Boolean} force 强制登录
      */
-    async login() {
+    async login(force) {
+        if(force) {
+            this.clearCache();
+        }
+
+        if(remote.status.check(remote.CommStatus.logined)) {
+            return true;
+        }
+
         if(!this.userInfo) {
-            return;
+            return false;
         }
 
         //检测执行负载均衡
