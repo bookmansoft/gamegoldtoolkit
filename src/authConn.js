@@ -453,7 +453,7 @@ class AuthConn
       //credentials: 'include',
     };
 
-    const newOptions = extendObj(defaultOptions, options);
+    const newOptions = { ...defaultOptions, ...options };
     newOptions.json = true;
 
     let _head = !!conf.head ? conf.head : 'http';
@@ -470,10 +470,11 @@ class AuthConn
       newOptions.method === 'PUT' ||
       newOptions.method === 'DELETE'
     ) {
-      newOptions.headers = extendObj({
+      newOptions.headers = {
         Accept: 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
-      }, newOptions.headers);
+        ...newOptions.headers,
+      };
     }
 
     try {

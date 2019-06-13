@@ -1,6 +1,22 @@
 {
   "name": "gamerpc",
-  "version": "1.7.8",
+  "version": "1.7.9",
+  "author": "bookmansoft <ceo@920.cc>",
+  "contributors": [
+    "bookmansoft <ceo@920.cc>"
+  ],
+  "license": "ISC",
+  "keywords": [
+    "vallnet",
+    "bitcoin",
+    "gamegold",
+    "gamecloud",
+    "gameserver",
+    "gamelogic",
+    "cryptcurrency",
+    "rpc",
+    "cloud"
+  ],
   "description": "connector for gamecloud & gamegold",
   "main": "index.js",
   "scripts": {
@@ -11,15 +27,6 @@
     "type": "git",
     "url": "git+https://github.com/bookmansoft/gamegoldtoolkit.git"
   },
-  "keywords": [
-    "bitcoin",
-    "blockchain",
-    "toolkit",
-    "gamegold",
-    "cryptcurrency"
-  ],
-  "author": "bookmansoft",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/bookmansoft/gamegoldtoolkit/issues"
   },
@@ -31,7 +38,7 @@
     "socket.io-client": "2.2.0"
   },
   "devDependencies": {
-    "webpack": "^4.33.0",
+    "webpack": "^4.34.0",
     "webpack-cli": "^3.3.2",
     "babel": "^6.23.0",
     "babel-core": "^6.26.3",

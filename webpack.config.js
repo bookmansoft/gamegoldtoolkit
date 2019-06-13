@@ -1,10 +1,11 @@
 const path = require('path');
+const config = require('./package.json');
 
 module.exports = {
   entry: './src/index.js',
   output: {
       path: path.resolve(__dirname, 'lib'),
-      filename: 'bundle.js'
+      filename: `gamerpc${config.version}.js`
   },
   module:{
     rules:[ 

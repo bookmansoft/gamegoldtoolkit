@@ -90,7 +90,7 @@ class Remote {
      */
     async getSign() {
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-        let msg = await this.getRequest({id: this.userInfo.openid, }, this.userInfo.domain);
+        let msg = await this.getRequest({openid: this.userInfo.openid, address: this.userInfo.address }, this.userInfo.domain);
         //客户端从模拟网关取得了签名集
         if(!msg) {
             return false;
@@ -405,6 +405,11 @@ class Remote {
         }
 
         this.clearCache();
+        //清除通讯状态，注意LB状态未清除
+        this.status.unSet(CommStatus.sign);
+        this.status.unSet(CommStatus.signCode);
+        this.status.unSet(CommStatus.logined);
+
         return this;
     }
 
@@ -424,22 +429,7 @@ class Remote {
             params.func = arr[0];
         }
 
-        params.oemInfo = !!params.oemInfo ? params.oemInfo : {};
-        if(!!params.oemInfo.domain){
-            this.userInfo.domain = params.oemInfo.domain;
-        }
-        if(!!params.oemInfo.openid){
-            this.userInfo.openid = params.oemInfo.openid;
-        }
-        if(!!params.oemInfo.openkey){
-            this.userInfo.openkey = params.oemInfo.openkey;
-        }
-        if(!!this.userInfo.token){
-            params.oemInfo.token = this.userInfo.token;
-        }
-        if(!!this.userInfo.pf){
-            params.oemInfo.pf = this.userInfo.pf;
-        }
+        params.oemInfo = this.userInfo || {};
     }
 
     /**
@@ -501,8 +491,11 @@ class Remote {
 
         let url = !!authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
         url += "?" + Object.keys(params).reduce((ret, next)=>{
-                if(ret != ''){ ret += '&'; }
-                return ret + next + "=" + ((typeof params[next]) == "object" ? JSON.stringify(params[next]) : params[next]);
+                if(ret != '') { 
+                    ret += '&';
+                }
+                //增加了字段编译，避免特殊字符如汉字对URL拼接造成干扰
+                return ret + next + "=" + ((typeof params[next]) == "object" ? encodeURIComponent(JSON.stringify(params[next])) : encodeURIComponent(params[next]));
             }, '');
 
         return this.get(url);
