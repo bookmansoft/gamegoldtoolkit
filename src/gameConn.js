@@ -11,7 +11,7 @@ const Indicator = require('./utils/Indicator');
  */
 class Remote {
     constructor(options) {
-        this.rpcMode = this.CommMode.post;
+        this.rpcMode = CommMode.post;
         this.loginMode = Indicator.inst();
         this.configOri = options;                   //读取并保存初始配置，不会修改
         this.config = clone(this.configOri);        //复制一份配置信息，有可能修改
@@ -125,7 +125,7 @@ class Remote {
             || this.status.check(CommStatus.logined))
         ) {
             //不满足登录的前置条件或已经登录
-            return;
+            return false;
         }
 
         //将签证发送到服务端进行验证
@@ -135,8 +135,10 @@ class Remote {
         });
 
         if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
+            this.userInfo.openid = msg.data.openid;
             this.userInfo.id = msg.data.id;
             this.userInfo.token = msg.data.token;
+            this.userInfo.name = msg.data.name;
             this.status.set(CommStatus.logined);
 
             return true;
@@ -226,12 +228,13 @@ class Remote {
                     throw(new Error('get sign error'));
                 } else {
                     this.status.set(CommStatus.sign);
+                    return true;
                 }
             } else {
-                await this.getToken();
+                return await this.getToken();
             }
         } else {
-            await this.getToken();
+            return await this.getToken();
         }
     }
 
