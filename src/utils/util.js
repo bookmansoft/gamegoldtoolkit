@@ -1257,8 +1257,8 @@ const ReturnCode = {
  */
 const CommStatus = {
   lb:         1,      //已经执行了LB重定位
-  sign:       2,      //已经获得签名数据
-  signCode:   4,      //已经获得签名数据
+  sign:       2,      //已经获得签名数据集
+  signCode:   4,      //已经获得验证码
   logined:    8,      //已经成功登录
   reqSign:    1024,   //需要获取两阶段认证的签名数据
   reqLb:      2048,   //需要执行负载均衡

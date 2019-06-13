@@ -86,7 +86,7 @@ class Remote {
     }
 
     /**
-     * 获取签名
+     * 获取签名数据集
      */
     async getSign() {
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
@@ -102,7 +102,7 @@ class Remote {
     }
 
     /**
-     * 设置签名验证码
+     * 设置验证码
      * @param {*} code 
      */
     setSign(code) {
@@ -116,7 +116,7 @@ class Remote {
     }
 
     /**
-     * 获取令牌
+     * 登录并获得令牌
      */
     async getToken() {
         if(!this.userInfo 
@@ -405,12 +405,21 @@ class Remote {
         }
 
         this.clearCache();
-        //清除通讯状态，注意LB状态未清除
-        this.status.unSet(CommStatus.sign);
-        this.status.unSet(CommStatus.signCode);
-        this.status.unSet(CommStatus.logined);
 
         return this;
+    }
+
+    /**
+     * 彻底清除连接器历史数据，包括通讯状态、运行数据缓存、注册事件句柄，只保留最原始的配置信息
+     */
+    init() {
+        this.close();
+
+        this.config = clone(this.configOri);        //复制一份配置信息，有可能修改
+        this.userInfo = {};
+        this.status.init();
+        this.loginMode.init();
+        this.notifyHandles = {};
     }
 
     /**
