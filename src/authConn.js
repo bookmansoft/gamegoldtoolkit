@@ -4,7 +4,7 @@
  * 通过合适的打包程序，也可以用于浏览器环境
  */
 
-const {io, signHMAC, Base64, CommMode, now} = require('./utils/util')
+const {extendObj, io, signHMAC, Base64, CommMode, now} = require('./utils/util')
 const {generateKey, signObj, hash256} = require('./utils/verifyData')
 
 /**
@@ -453,7 +453,7 @@ class AuthConn
       //credentials: 'include',
     };
 
-    const newOptions = { ...defaultOptions, ...options };
+    const newOptions = extendObj(defaultOptions, options);
     newOptions.json = true;
 
     let _head = !!conf.head ? conf.head : 'http';
@@ -470,11 +470,10 @@ class AuthConn
       newOptions.method === 'PUT' ||
       newOptions.method === 'DELETE'
     ) {
-      newOptions.headers = {
+      newOptions.headers = extendObj({
         Accept: 'application/json',
         'Content-Type': 'application/json; charset=utf-8',
-        ...newOptions.headers,
-      };
+      }, newOptions.headers);
     }
 
     try {
