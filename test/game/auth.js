@@ -26,8 +26,10 @@ let remote = new gameconn({
     },
 }).setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 
-//设定一个随机的、用于验证后期绑定成功的手机号码
+//设定一个随机的、用于后期绑定的手机号码
 let wxUserPhone = ((Math.random() * 100000000) | 0).toString();
+
+//用于验证后期绑定成功的用户证书缓存变量
 let authUser = '';
 
 describe.only('游戏云注册登录测试', () => {
@@ -35,10 +37,10 @@ describe.only('游戏云注册登录测试', () => {
         //初始化连接器，只保留原始配置信息
         remote.init();
 
-        //设置用户基本信息
+        //设置用户基本信息，指定需要负载均衡和两阶段认证
         remote.setUserInfo({
             domain: 'auth2step',        //验证模式
-            openid: '13888888888',      //用户标识
+            openkey: '13888888888',     //用户自拟证书，填写于 openkey 而非 openid 上，服务端转换最终的 openid 后下发给客户端
             addrType: 'phone',          //验证方式
             address: '13888888888',     //验证地址
         }, remote.CommStatus.reqLb | remote.CommStatus.reqSign);
@@ -76,8 +78,8 @@ describe.only('游戏云注册登录测试', () => {
 
         //设置用户基本信息
         remote.setUserInfo({
-            domain: 'authwx',
-            openkey: `${Math.random()*1000000000 | 0}`,
+            domain: 'authwx',                           //认证模式
+            openkey: `${Math.random()*1000000000 | 0}`, //中间证书，填写于 openkey 而非 openid 上，服务端转换最终的 openid 后下发给客户端
         }, remote.CommStatus.reqLb);
 
         let ret = await remote.login();
@@ -129,7 +131,7 @@ describe.only('游戏云注册登录测试', () => {
         //设置用户基本信息
         remote.setUserInfo({
             domain: 'auth2step',        //验证模式
-            openid: '13888888888',      //用户标识
+            openkey: '13888888888',     //用户标识
             addrType: 'phone',          //验证方式
             address: wxUserPhone,       //验证地址
         }, remote.CommStatus.reqLb | remote.CommStatus.reqSign);
@@ -170,7 +172,7 @@ describe.only('游戏云注册登录测试', () => {
         //设置用户基本信息
         remote.setUserInfo({
             domain: 'auth2step',        //验证模式
-            openid: '13888888888',      //用户标识
+            openkey: '13888888888',     //用户标识
             addrType: 'phone',          //验证方式
             address: '13888888888',     //验证地址
         }, remote.CommStatus.reqLb | remote.CommStatus.reqSign);
@@ -264,7 +266,7 @@ describe.only('游戏云注册登录测试', () => {
         //设置用户基本信息
         remote.setUserInfo({
             domain: 'auth2step',        //验证模式
-            openid: '13888888888',      //用户标识
+            openkey: '13888888888',     //用户标识
             addrType: 'phone',          //验证方式
             address: wxUserPhone,       //验证地址
         }, remote.CommStatus.reqLb | remote.CommStatus.reqSign);

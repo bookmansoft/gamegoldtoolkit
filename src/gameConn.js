@@ -90,7 +90,7 @@ class Remote {
      */
     async getSign() {
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-        let msg = await this.getRequest({openid: this.userInfo.openid, address: this.userInfo.address }, this.userInfo.domain);
+        let msg = await this.getRequest({openkey: this.userInfo.openkey, address: this.userInfo.address }, this.userInfo.domain);
         //客户端从模拟网关取得了签名集
         if(!msg) {
             return false;
@@ -152,7 +152,6 @@ class Remote {
     clearCache() {
         if(this.userInfo) {
             this.userInfo.token = null; 
-            this.userInfo.auth = null;
         }
     }
 
