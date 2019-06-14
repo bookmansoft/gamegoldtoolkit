@@ -17,6 +17,7 @@ const remote = new gameconn({
     "webserver": { 
         //注意：如果需要负载均衡，这里一般指定负载均衡服务器地址，否则直接填写业务主机地址
         "host": "127.0.0.1",        //远程主机地址
+        "authPort": 9601,           //签证主机端口
         "port": 9901                //远程主机端口
     },
 }).setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
@@ -34,7 +35,7 @@ describe.only('游戏云注册登录测试', () => {
         //执行登录操作，通过配置对象传入用户信息，并指定签证方式为两阶段认证
         let ret = await remote.init(/*初始化连接器，只保留原始配置信息*/).login({
             domain: 'auth2step',        //签证方式
-            openkey: UserPhone_2step,   //客户端指定的用户登录标识，填写于 openkey 而非 openid 上，服务端转换最终的用户登录标识(openid)并下发给客户端
+            openid: UserPhone_2step,    //客户端指定的用户登录标识
             addrType: 'phone',          //验证方式
             address: UserPhone_2step,   //验证地址
         });
@@ -92,7 +93,7 @@ describe.only('游戏云注册登录测试', () => {
     it('后期绑定成功后，使用手机号码进行两阶段登录，登录同一个账户', async () => {
         let ret = await remote.init().login({
             domain: 'auth2step',        //验证模式
-            openkey: UserPhone_2step,   //用户标识
+            openid: UserPhone_2step,    //用户标识
             addrType: 'phone',          //验证方式
             address: UserPhone_wx,      //验证地址
         });
@@ -122,7 +123,7 @@ describe.only('游戏云注册登录测试', () => {
     it('两阶段认证登录，使用负载均衡', async () => {
         let ret = await remote.init().login({
             domain: 'auth2step',        //验证模式
-            openkey: UserPhone_2step,   //用户标识
+            openid: UserPhone_2step,    //用户标识
             addrType: 'phone',          //验证方式
             address: UserPhone_2step,   //验证地址
         });
@@ -181,7 +182,7 @@ describe.only('游戏云注册登录测试', () => {
     it('后期绑定成功后，使用手机号码进行两阶段登录，登录同一个账户', async () => {
         let ret = await remote.init().login({
             domain: 'auth2step',        //验证模式
-            openkey: '13888888888',     //用户标识
+            openid: '13888888888',      //用户标识
             addrType: 'phone',          //验证方式
             address: UserPhone_wx,      //验证地址
         });

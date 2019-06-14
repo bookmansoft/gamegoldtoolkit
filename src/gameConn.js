@@ -86,11 +86,31 @@ class Remote {
     }
 
     /**
+     * 获取OpenId
+     */
+    async getOpenId() {
+        //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
+        let msg = await this.getRequest({
+            port: this.configOri.webserver.authPort, 
+            openkey: this.userInfo.openkey, 
+        }, this.userInfo.domain);
+
+        //客户端从模拟网关取得了签名集
+        if(!msg) {
+            return false;
+        }
+
+        this.userInfo.openid = msg.unionid;
+
+        return true;
+    }
+
+    /**
      * 获取签名数据集
      */
     async getSign() {
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-        let msg = await this.getRequest({openkey: this.userInfo.openkey, addrType: this.userInfo.addrType, address: this.userInfo.address }, this.userInfo.domain);
+        let msg = await this.getRequest({openid: this.userInfo.openid, addrType: this.userInfo.addrType, address: this.userInfo.address }, this.userInfo.domain);
         //客户端从模拟网关取得了签名集
         if(!msg) {
             return false;
@@ -202,15 +222,15 @@ class Remote {
                 case 'authwx': {
                     this.setUserInfo({
                         domain: options.domain,     //认证模式
-                        openkey: options.openkey,   //中间证书，填写于 openkey 而非 openid 上，服务端转换最终的 openid 后下发给客户端
-                    }, CommStatus.reqLb);
+                        openkey: options.openkey,   //中间证书，经由Auth服务器转换成 openid 下发给客户端
+                    }, CommStatus.reqLb | CommStatus.reqOpenId);
 
                     break;
                 }
                 case 'auth2step': {
                     this.setUserInfo({
                         domain: options.domain,     //验证模式
-                        openkey: options.openkey,   //用户自拟证书，填写于 openkey 而非 openid 上，服务端转换最终的 openid 后下发给客户端
+                        openid: options.openid,     //用户证书
                         addrType: options.addrType, //验证方式
                         address: options.address,   //验证地址
                     }, CommStatus.reqLb | CommStatus.reqSign);
@@ -229,6 +249,17 @@ class Remote {
 
         if(!this.userInfo) {
             return false;
+        }
+
+        //检测执行微信所需要的KeyId转换
+        if(this.loginMode.check(CommStatus.reqOpenId)) {
+            if(!this.status.check(CommStatus.OpenId)) {
+                if(!(await this.getOpenId())) {
+                    throw(new Error('keyId error'));
+                } else {
+                    this.status.set(CommStatus.OpenId);
+                }
+            }
         }
 
         //检测执行负载均衡
@@ -527,7 +558,8 @@ class Remote {
     async getRequest(params, authControl) {
         this.parseParams(params);
 
-        let url = !!authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let port = !!params.port ? params.port : this.config.webserver.port;
+        let url = !!authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${port}/${authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${port}/index.html`;
         url += "?" + Object.keys(params).reduce((ret, next)=>{
                 if(ret != '') { 
                     ret += '&';
@@ -546,7 +578,8 @@ class Remote {
     async postRequest(params, authControl) {
         this.parseParams(params);
 
-        let url = !!authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/${authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${this.config.webserver.port}/index.html`;
+        let port = !!params.port ? params.port : this.config.webserver.port;
+        let url = !!authControl ? `${this.config.UrlHead}://${this.config.webserver.host}:${port}/${authControl}` : `${this.config.UrlHead}://${this.config.webserver.host}:${port}/index.html`;
 
         return this.post(url, params);
     }
