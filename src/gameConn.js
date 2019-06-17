@@ -100,7 +100,12 @@ class Remote {
             return false;
         }
 
+        if(!msg.unionid) {
+            msg.unionid = msg.openid;
+        }
+
         this.userInfo.openid = msg.unionid;
+        this.userInfo.openkey = msg.access_token;
 
         return true;
     }
