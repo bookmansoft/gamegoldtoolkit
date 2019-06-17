@@ -238,7 +238,12 @@ class Remote {
                     break;
                 }
                 default: {
-                    throw(new Error('Unknown domain name'));
+                    this.setUserInfo({
+                        domain: 'official',         //验证模式
+                        openid: options.openid,     //登录名称
+                        openkey: options.openkey,   //登录密码
+                    });
+                    break;
                 }
             }
         }
@@ -490,14 +495,14 @@ class Remote {
         params.func = !!params.func ? params.func : 'index.login';
         //填充自动登录参数
         let arr = params.func.split('.');
-        if(arr.length > 1){
+        if(arr.length > 1) {
             params.control = arr[0];
             params.func = arr[1];
-        }
-        else{
+        } else {
             params.func = arr[0];
         }
 
+        //todo 这里直接携带了所有用户信息，应该根据情况，携带令牌，或者认证信息
         params.oemInfo = this.userInfo || {};
     }
 
