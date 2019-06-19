@@ -155,7 +155,7 @@ class Remote {
 
         //将签证发送到服务端进行验证
         let msg = await this.fetching({
-            'func': '1000',
+            'func': 'login.UserLogin',
             "oemInfo": this.userInfo,
         });
 
@@ -244,9 +244,9 @@ class Remote {
                 }
                 default: {
                     this.setUserInfo({
-                        domain: 'official',         //验证模式
-                        openid: options.openid,     //登录名称
-                        openkey: options.openkey,   //登录密码
+                        domain: options.domain || 'official',   //验证模式
+                        openid: options.openid,                 //登录名称
+                        openkey: options.openkey,               //登录密码
                     });
                     break;
                 }

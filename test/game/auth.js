@@ -30,7 +30,7 @@ let UserPhone_2step = ((Math.random() * 100000000) | 0).toString();
 //用于验证后期绑定成功的用户证书缓存变量
 let authUser = '';
 
-describe.only('游戏云注册登录测试', () => {
+describe('游戏云注册登录测试', () => {
     it('两阶段认证登录，使用负载均衡', async () => {
         //执行登录操作，通过配置对象传入用户信息，并指定签证方式为两阶段认证
         let ret = await remote.init(/*初始化连接器，只保留原始配置信息*/).login({
