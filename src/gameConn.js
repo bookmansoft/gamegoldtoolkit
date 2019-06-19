@@ -160,10 +160,11 @@ class Remote {
         });
 
         if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
-            this.userInfo.openid = msg.data.openid;
-            this.userInfo.id = msg.data.id;
-            this.userInfo.token = msg.data.token;
-            this.userInfo.name = msg.data.name;
+            if(typeof msg.data == 'object') {
+                Object.keys(msg.data).map(key=>{
+                    this.userInfo[key] = msg.data[key];
+                });
+            }
             this.status.set(CommStatus.logined);
 
             return true;
