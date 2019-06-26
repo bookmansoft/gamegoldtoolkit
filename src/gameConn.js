@@ -288,7 +288,7 @@ class Remote {
 
         //检测执行两阶段验证
         //两阶段验证模式(例如浏览器直接登录)：执行此操作，访问控制器方法 domain.auth 获取签名对象，并赋值到 userInfo.auth 字段，服务端同时会将关联验证码通过邮件或短信下发
-        //第三方授权登录模式(例如微信或QQ登录)：跳过此步
+        //第三方授权登录模式(例如微信或QQ登录)跳过此步
         if(this.loginMode.check(CommStatus.reqSign)) {
             if(!this.status.check(CommStatus.sign)) {
                 //如果需要两阶段验证且尚未执行，执行如下语句

@@ -235,11 +235,13 @@ util.isI16 = function isI16(value) {
  * @param {Object} data      待序列化的对象
  * @param {Array?} exclude   包含所有待排除的属性名的数组
  */
-util.stringify = function stringify(data, exclude) {
-  if(typeof data == 'undefined') {
+util.stringify = function(data, exclude) {
+  if(typeof data == 'undefined' || !data) {
     return '';
+  } 
+  if(typeof data == 'string'){
+    return data;
   }
-
   if(Array.isArray(data)) {
     return data.reduce((sofar,cur)=>{
       sofar += util.stringify(cur);
@@ -251,7 +253,9 @@ util.stringify = function stringify(data, exclude) {
     let base = '';
     Object.keys(data).sort().map(key=>{
       if(!exclude || !exclude.includes[key]) {
-          base += key + data[key];
+        if(!!data[key]) {
+          base += key + util.stringify(data[key]);
+        }     
       }
     });
     return base;

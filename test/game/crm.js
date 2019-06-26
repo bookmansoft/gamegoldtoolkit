@@ -26,7 +26,7 @@ const remote = new gameconn({
     }
 }).setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 
-describe.only('游戏云注册登录测试', () => {
+describe('游戏云注册登录测试', () => {
     it('密码验证登录', async () => {
         password = crypto.createHash("sha1").update(password + salt).digest("hex");  //加密后的值d
     
