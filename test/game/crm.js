@@ -22,22 +22,35 @@ const remote = new gameconn({
     "UrlHead": "http",            //协议选择: http/https
     "webserver": {
       "host": "127.0.0.1",        //开发使用本地ip：127.0.0.1 打包使用远程主机地址 114.115.167.168
-      "port": 9801                //远程主机端口
+      "port": 9901                //远程主机端口
     }
 }).setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 
-describe('游戏云注册登录测试', () => {
-    it('密码验证登录', async () => {
-        password = crypto.createHash("sha1").update(password + salt).digest("hex");  //加密后的值d
-    
-        //统一执行登录操作
-        //{ status: "ok", type: "account", currentAuthority: "admin", userinfo:{ id: 1 } }
-        ret = await remote.login({ 
-          domain: 'authpwd',
-          openid: userName,
-          openkey: password,
-        });
+describe('CRM注册登录测试', () => {
+  it.only('两阶段认证登录，使用负载均衡', async () => {
+      //执行登录操作，通过配置对象传入用户信息，并指定签证方式为两阶段认证
+      let ret = await remote.init(/*初始化连接器，只保留原始配置信息*/).login({
+          domain: 'auth2step.CRM',    //签证方式
+          openid: 'helloBob',         //客户端指定的用户登录标识
+          addrType: 'phone',          //验证方式
+          address: '13911111111',     //验证地址
+      });
+      assert(ret, 'login failed');
+  
+      //此处只是模拟用户输入验证码的流程，实际运用中，当用户提交验证码时应立即触发 authcode 事件
+      if (remote.loginMode.check(remote.CommStatus.reqSign) && !remote.status.check(remote.CommStatus.signCode)) {
+          //查询短信验证码，该接口仅供测试
+          let msg = await remote.fetching({func:`${remote.userInfo.domain.split('.')[0]}.getKey`, address: remote.userInfo.address});
+          assert(msg.code == 0, 'getKey error');
 
-        assert(ret);
-    });
+          //当用户输入验证码时，使用事件驱动登录操作
+          remote.events.emit('authcode', msg.data);
+          await (async function(time){return new Promise(resolve =>{setTimeout(resolve, time);});})(1000);
+      }
+  });
+
+  it.only('登录成功后，依靠token通过用户认证，并执行业务指令', async () => {
+      let msg = await remote.fetching({func: "test.echo"});
+      assert(msg.code == 0);
+  });
 });

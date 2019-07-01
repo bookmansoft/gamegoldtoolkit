@@ -115,7 +115,12 @@ class Remote {
      */
     async getSign() {
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-        let msg = await this.getRequest({openid: this.userInfo.openid, addrType: this.userInfo.addrType, address: this.userInfo.address }, this.userInfo.domain);
+        let router = this.userInfo.domain.split('.')[0]; //domain一般由代表验证模式的前缀，加上代表节点类型的后缀组成, 获取签名接口的路由路径默认等于其前缀
+        let msg = await this.getRequest(
+            {openid: this.userInfo.openid, addrType: this.userInfo.addrType, address: this.userInfo.address }, 
+            router,
+        );
+
         //客户端从模拟网关取得了签名集
         if(!msg) {
             return false;
@@ -224,7 +229,8 @@ class Remote {
         }
 
         if(options.domain) {
-            switch(options.domain) {
+            let authmode = options.domain.split('.')[0];
+            switch(authmode) {
                 case 'authwx': {
                     this.setUserInfo({
                         domain: options.domain,     //认证模式
@@ -287,7 +293,7 @@ class Remote {
         }
 
         //检测执行两阶段验证
-        //两阶段验证模式(例如浏览器直接登录)：执行此操作，访问控制器方法 domain.auth 获取签名对象，并赋值到 userInfo.auth 字段，服务端同时会将关联验证码通过邮件或短信下发
+        //两阶段验证模式(例如浏览器直接登录)：执行此操作，访问控制器方法 authmode.auth 获取签名对象，并赋值到 userInfo.auth 字段，服务端同时会将关联验证码通过邮件或短信下发
         //第三方授权登录模式(例如微信或QQ登录)跳过此步
         if(this.loginMode.check(CommStatus.reqSign)) {
             if(!this.status.check(CommStatus.sign)) {
