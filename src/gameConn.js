@@ -116,10 +116,7 @@ class Remote {
     async getSign() {
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
         let router = this.userInfo.domain.split('.')[0]; //domain一般由代表验证模式的前缀，加上代表节点类型的后缀组成, 获取签名接口的路由路径默认等于其前缀
-        let msg = await this.getRequest(
-            {openid: this.userInfo.openid, addrType: this.userInfo.addrType, address: this.userInfo.address }, 
-            router,
-        );
+        let msg = await this.getRequest({}, router);
 
         //客户端从模拟网关取得了签名集
         if(!msg) {
@@ -166,9 +163,10 @@ class Remote {
 
         if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
             if(typeof msg.data == 'object') {
-                Object.keys(msg.data).map(key=>{
-                    this.userInfo[key] = msg.data[key];
-                });
+                this.userInfo.domain = msg.data.domain;
+                this.userInfo.openid = msg.data.openid;
+                this.userInfo.openkey = msg.data.openkey;
+                this.userInfo.token = msg.data.token;
             }
             this.status.set(CommStatus.logined);
 
@@ -239,16 +237,29 @@ class Remote {
 
                     break;
                 }
+
                 case 'auth2step': {
                     this.setUserInfo({
                         domain: options.domain,     //验证模式
                         openid: options.openid,     //用户证书
+                        openkey: options.openkey,   //用户证书
                         addrType: options.addrType, //验证方式
                         address: options.address,   //验证地址
                     }, CommStatus.reqLb | CommStatus.reqSign);
 
                     break;
                 }
+
+                case 'authpwd': {
+                    this.setUserInfo({
+                        domain: options.domain,     //验证模式
+                        openid: options.openid,     //用户证书
+                        openkey: options.openkey,   //用户密码
+                    }, CommStatus.reqLb);
+
+                    break;
+                }
+
                 default: {
                     this.setUserInfo({
                         domain: options.domain || 'official',   //验证模式
