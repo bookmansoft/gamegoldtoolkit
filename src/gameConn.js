@@ -136,7 +136,8 @@ class Remote {
         if(!!this.userInfo) {
             if(this.loginMode.check(CommStatus.reqSign)) {
                 this.status.set(CommStatus.signCode);
-                this.userInfo.openkey = code;
+                this.userInfo.auth = this.userInfo.auth || {};
+                this.userInfo.auth.cpatcha = code;
             }
         }
         return this;

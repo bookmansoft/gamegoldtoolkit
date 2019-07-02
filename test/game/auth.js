@@ -87,7 +87,8 @@ describe.only('钱包注册登录测试', () => {
         assert(msg.code == 0, 'getKey error');
 
         //用户输入验证码
-        msg = await remote.fetching({func:`bindafter.check`, auth: auth, openkey: msg.data}); //查询短信验证码，该接口仅供测试
+        auth.captcha = msg.data;
+        msg = await remote.fetching({func:`bindafter.check`, auth: auth});
         assert(msg.code == 0, 'bindafter.check error');
         await (async function(time){return new Promise(resolve =>{setTimeout(resolve, time);});})(1000);
     });
