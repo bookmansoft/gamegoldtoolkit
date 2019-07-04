@@ -162,17 +162,25 @@ class Remote {
             "oemInfo": this.userInfo,
         });
 
-        if(!!msg && msg.code == ReturnCode.Success && !!msg.data) {
-            if(typeof msg.data == 'object') {
-                this.userInfo.domain = msg.data.domain;
-                this.userInfo.openid = msg.data.openid;
-                this.userInfo.openkey = msg.data.openkey;
-                this.userInfo.token = msg.data.token;
+        if(!!msg) {
+            if(msg.code == ReturnCode.Success && !!msg.data) {
+                if(typeof msg.data == 'object') {
+                    this.userInfo.domain = msg.data.domain;
+                    this.userInfo.openid = msg.data.openid;
+                    this.userInfo.openkey = msg.data.openkey;
+                    this.userInfo.token = msg.data.token;
+                    this.userInfo.currentAuthority = msg.data.currentAuthority;
+                }
+                this.status.set(CommStatus.logined);
+                this.events.emit('logined', {code:0, data:{currentAuthority: this.userInfo.currentAuthority}});
+    
+                return true;
+            } else {
+                this.events.emit('logined', {code: msg.code});
             }
-            this.status.set(CommStatus.logined);
-
-            return true;
-        } 
+        } else {
+            this.events.emit('logined', {code:-1});
+        }
         return false;
     }
 
