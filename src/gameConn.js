@@ -505,7 +505,7 @@ class Remote {
     }
 
     /**
-     * 彻底清除连接器历史数据，包括通讯状态、运行数据缓存、注册事件句柄，只保留最原始的配置信息
+     * 彻底清除连接器历史数据，包括通讯状态、运行数据缓存，只保留最原始的配置信息
      */
     init() {
         this.close();
@@ -514,7 +514,6 @@ class Remote {
         this.userInfo = {};
         this.status.init();
         this.loginMode.init();
-        this.notifyHandles = {};
         
         return this;
     }
