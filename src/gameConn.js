@@ -22,15 +22,7 @@ class Remote {
         //状态管理器
         this.status = Indicator.inst(options.status);
 
-        //捕获Socket连接事件，在连接/重连时发送登录报文
-        this.events.on('comm', async (data)=>{
-            switch(data.status) {
-                case 'connect': {
-                    break;
-                }
-            }
-        });
-
+        //两阶段登录时，用户输入验证码时提交此事件
         this.events.on('authcode', async code=>{
             await this.setSign(code).login();
         })
@@ -71,6 +63,7 @@ class Remote {
             }
         })
         .on('disconnect', ()=>{//断线重连
+            this.events.emit('comm', {status: 'disconnect'});
             this.socket.needConnect = true;
             setTimeout(()=>{
                 if(!!this.socket.needConnect) {
@@ -78,11 +71,21 @@ class Remote {
                     this.socket.connect();
                 }
             }, 1500);
-        })
-        .on('connect', () => { //连接消息
+        }).on('connect', () => { //连接消息
             this.events.emit('comm', {status: 'connect'});
+        }).on('error', () => {
+            this.events.emit('comm', {status: 'error'});
         });
-        await (async (time) => {return new Promise(resolve => {setTimeout(resolve, time);});})(1000);
+
+        let self = this;
+        let prom = new Promise(resolve => {
+            self.events.on('comm', async msg => {
+                if(msg.status == 'connect') {
+                    resolve();
+                }
+            })
+        });
+        return prom;
     }
 
     /**
@@ -498,8 +501,6 @@ class Remote {
             this.socket.disconnect();
             this.socket = null;
         }
-
-        this.clearCache();
 
         return this;
     }
