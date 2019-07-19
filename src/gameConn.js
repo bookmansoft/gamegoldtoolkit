@@ -168,11 +168,7 @@ class Remote {
         if(!!msg) {
             if(msg.code == ReturnCode.Success && !!msg.data) {
                 if(typeof msg.data == 'object') {
-                    this.userInfo.domain = msg.data.domain;
-                    this.userInfo.openid = msg.data.openid;
-                    this.userInfo.openkey = msg.data.openkey;
-                    this.userInfo.token = msg.data.token;
-                    this.userInfo.currentAuthority = msg.data.currentAuthority;
+                    extendObj(this.userInfo, msg.data);
                 }
                 this.status.set(CommStatus.logined);
                 this.events.emit('logined', {code:0, data:{currentAuthority: this.userInfo.currentAuthority}});
@@ -369,6 +365,16 @@ class Remote {
         this.notifyHandles[etype] = cb;
         return this;
     }
+    /**
+     * 移除监控句柄
+     * @param {*} etype 
+     */
+    unWatch(etype) {
+        if(!!this.notifyHandles[etype]) {
+            delete this.notifyHandles[etype];
+        }
+        return this;
+    }
 
     /**
      * 判断返回值是否成功
@@ -534,8 +540,11 @@ class Remote {
             params.func = arr[0];
         }
 
-        //todo 这里直接携带了所有用户信息，应该根据情况，携带令牌，或者认证信息
-        params.oemInfo = this.userInfo || {};
+        params.oemInfo = {};
+        params.oemInfo.domain = this.userInfo.domain;
+        params.oemInfo.openid = this.userInfo.openid;
+        params.oemInfo.openkey = this.userInfo.openkey;
+        params.oemInfo.token = this.userInfo.token;
     }
 
     /**
