@@ -552,7 +552,7 @@ class Remote {
      * @param {*} url       远程地址
      */
     async get(url) {
-        const newOptions = { json: true };
+        const newOptions = { json: true, method: 'GET', mode: 'cors', };
         
         newOptions.headers = {
             Accept: 'application/json',
@@ -575,7 +575,7 @@ class Remote {
      * @param {*} options   body
      */
     async post(url, options) {
-        const newOptions = { json: true, method: 'POST', body: JSON.stringify(options) };
+        const newOptions = { json: true, method: 'POST', mode: 'cors', body: JSON.stringify(options) };
         
         newOptions.headers = {
             Accept: 'application/json',
