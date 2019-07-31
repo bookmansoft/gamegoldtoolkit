@@ -23,7 +23,8 @@ class Remote {
         this.status = Indicator.inst(options.status);
 
         //两阶段登录时，用户输入验证码时提交此事件
-        this.events.on('authcode', async code=>{
+        this.events.on('authcode', async code => {
+            console.log('gameconn: commit authcode', code);
             await this.setSign(code).login();
         })
     }
@@ -63,6 +64,7 @@ class Remote {
             }
         })
         .on('disconnect', ()=>{//断线重连
+            console.log('gameconn: socket disconnected');
             this.events.emit('comm', {status: 'disconnect'});
             this.socket.needConnect = true;
             setTimeout(()=>{
@@ -72,6 +74,7 @@ class Remote {
                 }
             }, 1500);
         }).on('connect', () => { //连接消息
+            console.log('gameconn: socket connected');
             this.events.emit('comm', {status: 'connect'});
         }).on('error', () => {
             this.events.emit('comm', {status: 'error'});
@@ -93,6 +96,7 @@ class Remote {
      */
     async getOpenId() {
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
+        console.log('gameconn: getOpenId');
         let msg = await this.getRequest({
             port: this.configOri.webserver.authPort, 
             openkey: this.userInfo.openkey, 
@@ -110,6 +114,7 @@ class Remote {
         this.userInfo.openid = msg.unionid;
         this.userInfo.openkey = msg.access_token;
 
+        console.log('gameconn: getOpenId', msg.unionid);
         return true;
     }
 
@@ -117,6 +122,7 @@ class Remote {
      * 获取签名数据集
      */
     async getSign() {
+        console.log('gameconn: getSign');
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
         let router = this.userInfo.domain.split('.')[0]; //domain一般由代表验证模式的前缀，加上代表节点类型的后缀组成, 获取签名接口的路由路径默认等于其前缀
         let msg = await this.getRequest({}, router);
@@ -127,6 +133,8 @@ class Remote {
         }
 
         this.userInfo.auth = msg;
+
+        console.log('gameconn: getSign', msg);
 
         return true;
     }
@@ -160,12 +168,14 @@ class Remote {
         }
 
         //将签证发送到服务端进行验证
+        console.log('gameconn: getToken');
         let msg = await this.fetching({
             'func': 'login.UserLogin',
             "oemInfo": this.userInfo,
         });
 
         if(!!msg) {
+            console.log('gameconn: getToken', msg.code);
             if(msg.code == ReturnCode.Success && !!msg.data) {
                 if(typeof msg.data == 'object') {
                     extendObj(this.userInfo, msg.data);
@@ -178,6 +188,7 @@ class Remote {
                 this.events.emit('logined', {code: msg.code});
             }
         } else {
+            console.log('gameconn: getToken failed');
             this.events.emit('logined', {code:-1});
         }
         return false;
@@ -210,15 +221,18 @@ class Remote {
         this.clearCache();
         this.status.init();
 
+        console.log('gameconn: lb');
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
         .getRequest({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
 
         if(!!msg && msg.code == ReturnCode.Success) {
+            console.log('gameconn: lb', msg.data);
             this.status.set(CommStatus.lb);
             this.locate(msg.data.ip, msg.data.port);
             return true;
         }
 
+        console.log('gameconn: lb failed');
         return false;
     }
 
