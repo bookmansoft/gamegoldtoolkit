@@ -223,7 +223,7 @@ class Remote {
 
         console.log('gameconn: lb');
         let msg = await this.locate(this.configOri.webserver.host, this.configOri.webserver.port)
-        .getRequest({"func": "config.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
+        .getRequest({"func": "lb.getServerInfo", "oemInfo":{"domain": this.userInfo.domain, "openid": this.userInfo.openid}});
 
         if(!!msg && msg.code == ReturnCode.Success) {
             console.log('gameconn: lb', msg.data);
