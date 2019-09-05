@@ -571,6 +571,9 @@ class Remote {
         if(this.userInfo.address) {
             params.oemInfo.address = this.userInfo.address;
         }
+        if(this.userInfo.auth) {
+            params.oemInfo.auth = this.userInfo.auth;
+        }
     }
 
     /**
