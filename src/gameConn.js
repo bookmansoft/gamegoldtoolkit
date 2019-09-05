@@ -554,11 +554,23 @@ class Remote {
             params.func = arr[0];
         }
 
-        params.oemInfo = {};
-        params.oemInfo.domain = this.userInfo.domain;
-        params.oemInfo.openid = this.userInfo.openid;
-        params.oemInfo.openkey = this.userInfo.openkey;
-        params.oemInfo.token = this.userInfo.token;
+        params.oemInfo = {
+            domain: this.userInfo.domain,
+            openid: this.userInfo.openid,
+        };
+
+        if(this.userInfo.openkey) {
+            params.oemInfo.openkey = this.userInfo.openkey;
+        }
+        if(this.userInfo.token) {
+            params.oemInfo.token = this.userInfo.token;
+        }
+        if(this.userInfo.addrType) {
+            params.oemInfo.addrType = this.userInfo.addrType;
+        }
+        if(this.userInfo.address) {
+            params.oemInfo.address = this.userInfo.address;
+        }
     }
 
     /**
