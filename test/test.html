@@ -22,10 +22,10 @@
 		remote.setup({
 			type:   'testnet',            //对等网络类型，分为 testnet 和 main
 			ip:     '127.0.0.1',          //远程全节点地址
-			apiKey: 'bookmansoft',        //远程全节点基本校验密码
+			apiKey: '',        		  	  //远程全节点基本校验密码
 			id:     'primary',            //默认访问的钱包编号
-			cid:    'xxxxxxxx-game-gold-root-xxxxxxxxxxxx', //授权节点编号，用于访问远程钱包时的认证
-			token:  '03aee0ed00c6ad4819641c7201f4f44289564ac4e816918828703eecf49e382d08', //授权节点令牌固定量，用于访问远程钱包时的认证
+			cid:    'xxxxxxxx-vallnet-root-xxxxxxxxxxxxxx', //授权节点编号，用于访问远程钱包时的认证
+			token:  '', 									//授权节点令牌固定量，用于访问远程钱包时的认证
 		});
 
 		(async () => {
