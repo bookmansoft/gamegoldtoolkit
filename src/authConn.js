@@ -398,7 +398,7 @@ class AuthConn
     let uri = ``;
     let conf = this.getTerminalConfig();
     let _head = !!conf.head ? conf.head : 'http';
-    uri = `${_head}://${conf.ip}:${cof.port}/`;
+    uri = `${_head}://${conf.ip}:${conf.port}/`;
   
     this.socket = io(uri, {'force new connection': true})
     .on('disconnect', ()=>{//断线重连
