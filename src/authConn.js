@@ -19,6 +19,7 @@ class AuthConn
       'main': {
         type:   'main',
         ip:     '127.0.0.1',          //远程服务器地址
+        port:   2002,                 //RPC端口
         head:   'http',               //远程服务器通讯协议，分为 http 和 https
         id:     'primary',            //默认访问的钱包编号
         apiKey: '',                   //远程服务器基本校验密码
@@ -28,6 +29,7 @@ class AuthConn
       'testnet': {
         type:   'testnet',
         ip:     '127.0.0.1',          //远程服务器地址
+        port:   2102,                 //RPC端口
         head:   'http',               //远程服务器通讯协议，分为 http 和 https
         id:     'primary',            //默认访问的钱包编号
         apiKey: '',                   //远程服务器基本校验密码
@@ -159,12 +161,7 @@ class AuthConn
       
     let conf = this.getTerminalConfig();
     let _head = !!conf.head ? conf.head : 'http';
-    if(conf.type == 'main') {
-      url = `${_head}://${conf.ip}:7332/public/${url}`;
-    }
-    else {
-      url = `${_head}://${conf.ip}:17332/public/${url}`;
-    }
+    url = `${_head}://${conf.ip}:${conf.port}/public/${url}`;
 
     newOptions.headers = {
       Accept: 'application/json',
@@ -197,12 +194,7 @@ class AuthConn
       
     let conf = this.getTerminalConfig();
     let _head = !!conf.head ? conf.head : 'http';
-    if(conf.type == 'main') {
-      url = `${_head}://${conf.ip}:7332/public/${url}`;
-    }
-    else {
-      url = `${_head}://${conf.ip}:17332/public/${url}`;
-    }
+    url = `${_head}://${conf.ip}:${conf.port}/public/${url}`;
 
     newOptions.headers = {
       Accept: 'application/json',
@@ -406,12 +398,7 @@ class AuthConn
     let uri = ``;
     let conf = this.getTerminalConfig();
     let _head = !!conf.head ? conf.head : 'http';
-    if(conf.type == 'main') {
-      uri = `${_head}://${conf.ip}:7332/`;
-    }
-    else {
-      uri = `${_head}://${conf.ip}:17332/`;
-    }
+    uri = `${_head}://${conf.ip}:${cof.port}/`;
   
     this.socket = io(uri, {'force new connection': true})
     .on('disconnect', ()=>{//断线重连
@@ -458,12 +445,7 @@ class AuthConn
 
     let _head = !!conf.head ? conf.head : 'http';
 
-    if(conf.type == 'main') {
-      newOptions.uri = `${_head}://${conf.ip}:7332/`;
-    }
-    else {
-      newOptions.uri = `${_head}://${conf.ip}:17332/`;
-    }
+    newOptions.uri = `${_head}://${conf.ip}:${conf.port}/`;
 
     if (
       newOptions.method === 'POST' ||
