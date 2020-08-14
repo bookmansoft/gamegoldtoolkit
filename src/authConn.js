@@ -179,7 +179,11 @@ class AuthConn
       let json = await ret.json();
 
       if(!conf.structured) {
-        return json.result; //脱去外围数据结构
+        if(json.error) {
+          return json;
+        } else {
+          return json.result; //脱去外围数据结构
+        }
       } else {
         return json;        //保留外围数据结构
       }
@@ -212,7 +216,11 @@ class AuthConn
       let json = await ret.json();
 
       if(!conf.structured) {
-        return json.result; //脱去外围数据结构
+        if(json.error) {
+          return json;
+        } else {
+          return json.result; //脱去外围数据结构
+        }
       } else {
         return json;        //保留外围数据结构
       }
@@ -252,8 +260,12 @@ class AuthConn
               reject(err);
             }
             if(!conf.structured) {
-              if(!!msg && !!msg.result) {
-                resolve(msg.result);
+              if(!!msg) {
+                if(msg.error) {
+                  resolve(msg);
+                } else {
+                  resolve(msg.result);
+                }
               } else {
                 resolve(null);
               }
@@ -281,15 +293,20 @@ class AuthConn
         );
     
         if(!rt) {
-          console.error(`${method}通讯错误`);
-          return null;
+          //console.error(`${method}通讯错误`);
+          return { error:-1, };
         }
 
         if(!!rt.error) {
-          console.error(`${method}: ${rt.error.type} / ${rt.error.message}`);
-        }    
+          //console.error(`${method}: ${rt.error.type} / ${rt.error.message}`);
+        }
+
         if(!conf.structured) {
-          return rt.result;
+          if(rt.error) {
+            return rt;
+          } else {
+            return rt.result;
+          }
         } else {
           return rt;
         }
@@ -496,7 +513,12 @@ class AuthConn
    */
   getTerminalConfig(networkType) {
     networkType = networkType || this.defaultNetworkType;
-    return !!this.AuthConnConfig[networkType] ? this.AuthConnConfig[networkType] : {};
+
+    if(!this.AuthConnConfig[networkType]) {
+      this.AuthConnConfig[info.type] = {};
+    }
+
+    return this.AuthConnConfig[networkType];
   }
 
   /**
@@ -506,6 +528,10 @@ class AuthConn
    */
   setup(info) {
     if(!!info && info.type) {
+      if(!this.AuthConnConfig[info.type]) {
+        this.AuthConnConfig[info.type] = {};
+      }
+
       //设置默认网络类型
       this.defaultNetworkType = info.type;
 
