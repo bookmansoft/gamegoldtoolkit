@@ -522,6 +522,14 @@ class AuthConn
   }
 
   /**
+   * 等待指定时长
+   * @param {Number} time 等待时长(毫秒) 
+   */
+  async wait (time) {
+    await (async (time) => {return new Promise(resolve => {setTimeout(resolve, time);});})(time);
+  }
+
+  /**
    * 设置终端配置
    * @param {*} networkType 
    * @param {*} info 
@@ -538,6 +546,11 @@ class AuthConn
       for(let k of Object.keys(info)) {
         //设置默认网络类型的参数 - 逐项设置
         this.AuthConnConfig[info.type][k] = info[k];
+      }
+
+      if(this.mode == CommMode.ws) {
+        //断开后自动重连，以便刷新接口参数如目标钱包编号等
+        this.close();
       }
     }
 

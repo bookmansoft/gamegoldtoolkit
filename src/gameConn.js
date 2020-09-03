@@ -455,6 +455,14 @@ class Remote {
     }
 
     /**
+     * 等待指定时长
+     * @param {Number} time 等待时长(毫秒) 
+     */
+    async wait (time) {
+        await (async (time) => {return new Promise(resolve => {setTimeout(resolve, time);});})(time);
+    }
+
+    /**
      * 为了提供node下的兼容性而添加的属性设定函数
      * @param {*} fn 
      */
