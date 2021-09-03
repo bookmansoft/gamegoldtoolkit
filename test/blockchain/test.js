@@ -38,12 +38,16 @@ describe('模拟测试', () => {
         console.log(ret);
     });
 
+    after(()=>{
+        remote.close();
+    });
+
     it('WS模式监听消息', async () => {
         await remote.setmode(remote.CommMode.ws);
 
         //通过监听收到消息
         remote.watch(msg => {
-            console.log(msg);
+            console.log('客户端收到订阅消息', msg);
         }, 'tx.client');
 
         //获得一个新的地址

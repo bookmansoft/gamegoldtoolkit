@@ -18,7 +18,7 @@ const remote = new gameconn({
         //注意：如果需要负载均衡，这里一般指定负载均衡服务器地址，否则直接填写业务主机地址
         "host": "127.0.0.1",        //远程主机地址
         "authPort": 9601,           //签证主机端口
-        "port": 9901                //远程主机端口
+        "port": 2102                //远程主机端口
     },
 }).setFetch(require('node-fetch')); //设置node环境下兼容的fetch函数
 

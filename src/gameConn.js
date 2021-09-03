@@ -1,6 +1,9 @@
-const {extendObj, CommStatus, clone, ReturnCodeName, io, ReturnCode, CommMode, NotifyType} = require('./utils/util');
+const {stringify, NotifyType, encrypt, decrypt, extendObj, CommStatus, clone, ReturnCodeName, io, ReturnCode, CommMode, createHmac} = require('./utils/util');
 const EventEmitter = require('events').EventEmitter;
 const Indicator = require('./utils/Indicator');
+const assert = require('./utils/assert')
+let {sha1, hash160, hash256, verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./utils/verifyData');
+const Secret = require('./utils/secret')
 
 /**
  * RPC控件
@@ -667,5 +670,24 @@ class Remote {
         return this.post(url, params);
     }
 }
+
+Remote.prototype.CommMode = CommMode;
+Remote.prototype.createHmac = createHmac;
+Remote.prototype.assert = assert;
+Remote.prototype.stringify = stringify;
+Remote.prototype.encrypt = encrypt;
+Remote.prototype.decrypt = decrypt;
+Remote.prototype.verifyData = verifyData;
+Remote.prototype.generateKey = generateKey;
+Remote.prototype.signObj = signObj;
+Remote.prototype.verifyObj = verifyObj;
+Remote.prototype.verifyAddress = verifyAddress;
+Remote.prototype.CommStatus = CommStatus;
+Remote.prototype.ReturnCode = ReturnCode;
+Remote.prototype.NotifyType = NotifyType;
+Remote.prototype.Secret = Secret;
+Remote.prototype.hash256 = hash256;
+Remote.prototype.hash160 = hash160;
+Remote.prototype.sha1 = sha1;
 
 module.exports = Remote;

@@ -4,8 +4,10 @@
  * 通过合适的打包程序，也可以用于浏览器环境
  */
 
-const {io, signHMAC, Base64, CommMode, now} = require('./utils/util')
-const {generateKey, signObj, hash256} = require('./utils/verifyData')
+const assert = require('./utils/assert')
+const {io, signHMAC, Base64, now, CommStatus, createHmac, ReturnCode, CommMode, NotifyType, encrypt, decrypt, stringify} = require('./utils/util');
+let {sha1, hash160, hash256, verifyData, generateKey, signObj, verifyObj, verifyAddress} = require('./utils/verifyData');
+const Secret = require('./utils/secret')
 
 /**
  * 终端配置管理
@@ -567,7 +569,27 @@ class AuthConn
   }
 }
 
+AuthConn.prototype.CommMode = CommMode;
+AuthConn.prototype.createHmac = createHmac;
+AuthConn.prototype.assert = assert;
+AuthConn.prototype.stringify = stringify;
+AuthConn.prototype.encrypt = encrypt;
+AuthConn.prototype.decrypt = decrypt;
+AuthConn.prototype.verifyData = verifyData;
+AuthConn.prototype.generateKey = generateKey;
+AuthConn.prototype.signObj = signObj;
+AuthConn.prototype.verifyObj = verifyObj;
+AuthConn.prototype.verifyAddress = verifyAddress;
+AuthConn.prototype.CommMode = CommMode;
+AuthConn.prototype.CommStatus = CommStatus;
+AuthConn.prototype.ReturnCode = ReturnCode;
+AuthConn.prototype.NotifyType = NotifyType;
+AuthConn.prototype.Secret = Secret;
+AuthConn.prototype.hash256 = hash256;
+AuthConn.prototype.hash160 = hash160;
+AuthConn.prototype.sha1 = sha1;
+
 /**
- * 访问游戏金节点的远程调用函数
+ * 访问全节点的远程调用函数
  */
 module.exports = AuthConn;
