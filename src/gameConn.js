@@ -127,7 +127,7 @@ class Remote {
     async getSign() {
         console.log('gameconn: getSign');
         //此处根据实际需要，发起了基于HTTP请求的认证访问，和本身创建时指定的通讯模式无关。
-        let router = this.userInfo.domain.split('.')[0]; //domain一般由代表验证模式的前缀，加上代表节点类型的后缀组成, 获取签名接口的路由路径默认等于其前缀
+        let router = this.userInfo.openid.split('.')[0]; //openid一般由代表验证模式的前缀，加上代表节点类型的后缀组成, 获取签名接口的路由路径默认等于其前缀
         let msg = await this.getRequest({}, router);
 
         //客户端从模拟网关取得了签名集
@@ -252,8 +252,19 @@ class Remote {
         }
 
         if(options.domain) {
-            let authmode = options.domain.split('.')[0];
+            let authmode = options.openid.split('.')[0];
             switch(authmode) {
+                case 'bxs': { //新增一种验证模式
+                    this.setUserInfo({
+                        domain: options.domain,     //认证模式
+                        openid: options.openid,     //用户证书
+                        openkey: options.openkey,   //中间证书，经由Auth服务器转换成 openid 下发给客户端
+                        auth: options.auth,         //验证信息
+                    }, CommStatus.reqLb);
+
+                    break;
+                }
+
                 case 'authwx': {
                     this.setUserInfo({
                         domain: options.domain,     //认证模式

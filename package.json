@@ -1,6 +1,6 @@
 {
   "name": "gamerpc",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "author": "bookmansoft <ceo@920.cc>",
   "contributors": [
     "bookmansoft <ceo@920.cc>"
@@ -21,7 +21,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "build": "cross-env NODE_ENV=production webpack ./src/index.js --mode=production"
+    "build": "set NODE_OPTIONS=--openssl-legacy-provider & cross-env NODE_ENV=production webpack ./src/index.js --mode=production"
   },
   "repository": {
     "type": "git",
@@ -38,6 +38,7 @@
     "socket.io-client": "^4.2.0"
   },
   "devDependencies": {
+    "mocha": "^10.2.0",
     "babel": "^6.23.0",
     "babel-core": "^6.26.3",
     "babel-loader": "^7.1.5",

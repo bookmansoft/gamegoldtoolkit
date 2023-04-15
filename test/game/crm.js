@@ -22,7 +22,7 @@ let username = `${(Math.random()*1000000)|0}@vallnet.cn`;
 let password = crypto.createHash("sha1").update(((Math.random()*1000000)|0).toString() + salt).digest("hex");  
 let mobilephone = `139${((Math.random()*100000000)|0).toString()}`;
 
-describe.only('CRM注册登录', () => {
+describe('CRM注册登录', () => {
     it('用户注册 - 通过两阶段认证模式实现', async () => {
     //当用户点击'获取验证码'时执行如下流程：
     let ret = await remote.init(/*初始化连接器，只保留原始配置信息*/).login({
